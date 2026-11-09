@@ -16,7 +16,8 @@ scan-and-dine-backend/
 │   ├── service-auth/ (Port 3001)             # Users, RBAC, 4-digit PIN login, HR shifts, device UUID
 │   ├── service-menu/ (Port 3002)             # Menu CMS, categories, 86-ing stock toggles, inventory, promos
 │   ├── service-orders/ (Port 3003)           # Cart, checkout, Stripe payment intents, KDS SLA timers, ledger
-│   └── service-websockets/ (Port 3005)       # Socket.io + Redis adapter, rooms for venue, KDS, & tables
+│   ├── service-websockets/ (Port 3005)       # Socket.io + Redis adapter, rooms for venue, KDS, & tables
+│   └── dev-server.ts                         # Unified Single-Port (3000) Dev Server for instant local dev
 │
 ├── packages/                                 # ── SHARED LIBRARIES ──
 │   ├── shared-types/                         # TypeScript interfaces, enums, & DTOs
@@ -28,18 +29,6 @@ scan-and-dine-backend/
 ├── package.json                              # Dedicated backend workspaces & dev runners
 └── tsconfig.base.json                        # Shared TypeScript base configuration
 ```
-
----
-
-## 🔌 Port & Service Mapping
-
-| Service | Default Port | Internal Role | Accessible By |
-| :--- | :---: | :--- | :--- |
-| **`api-gateway`** | `3000` | Reverse Proxy, Rate Limiter, Swagger Docs (`/api/docs`) | **Public Clients / Frontends** |
-| **`service-auth`** | `3001` | Authentication, RBAC, PINs, Shifts | Gateway Only |
-| **`service-menu`** | `3002` | Catalog, 86-ing, Inventory, Promos | Gateway Only |
-| **`service-orders`** | `3003` | Carts, Checkout, KDS, Ledger | Gateway Only |
-| **`service-websockets`** | `3005` | Socket.io Real-Time Engine | **Direct Socket Connections** |
 
 ---
 
@@ -56,12 +45,26 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-### 3. Run All Microservices Concurrently
+### 3. Run Everything on a Single Port (Recommended for Dev)
+To boot all APIs, Swagger docs, and WebSockets together on **Port 3000** in one terminal:
 ```bash
 npm run dev
 ```
 
-### 4. Or Run Any Single Service Individually
+* **Base REST API**: `http://localhost:3000/api/v1/`
+* **Swagger Docs**: `http://localhost:3000/api/docs`
+* **WebSockets**: `ws://localhost:3000` (attached on same port)
+* **Health Check**: `http://localhost:3000/api/v1/health`
+
+---
+
+### 4. Or Run Full Microservices Mode (Multi-Port)
+To run all 5 microservices as independent isolated processes:
+```bash
+npm run dev:microservices
+```
+
+Or start any individual service by itself:
 ```bash
 npm run dev:gateway   # Port 3000
 npm run dev:auth      # Port 3001

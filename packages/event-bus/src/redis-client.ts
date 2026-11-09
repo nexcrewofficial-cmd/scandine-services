@@ -3,54 +3,56 @@ import { logger } from '@scan-and-dine/logger';
 
 let redisPublisherInstance: Redis | null = null;
 let redisSubscriberInstance: Redis | null = null;
-let isRedisOffline = false;
+let redisOnline = false;
+let checkDone = false;
 
 const getRedisConfig = () => ({
   host: process.env.REDIS_HOST || '127.0.0.1',
   port: Number(process.env.REDIS_PORT) || 6379,
   password: process.env.REDIS_PASSWORD || undefined,
   lazyConnect: true,
-  maxRetriesPerRequest: 1,
-  retryStrategy(times: number) {
-    if (times > 3) {
-      if (!isRedisOffline) {
-        logger.warn('Redis not detected locally. Degrading to graceful offline fallback for dev mode.');
-        isRedisOffline = true;
-      }
-      return null; // Stop infinite reconnect loop in dev
-    }
-    return Math.min(times * 100, 1000);
-  },
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 0,
+  retryStrategy: () => null, // Do not spam retries if offline
 });
 
-export const getRedisPublisher = (): Redis => {
+export const isRedisAvailable = (): boolean => redisOnline;
+
+export const getRedisPublisher = (): Redis | null => {
   if (!redisPublisherInstance) {
-    redisPublisherInstance = new Redis(getRedisConfig());
-    redisPublisherInstance.on('connect', () => {
-      isRedisOffline = false;
-      logger.info('Redis Publisher client connected');
-    });
-    redisPublisherInstance.on('error', (err) => {
-      if (!isRedisOffline) {
-        logger.warn({ err: err.message }, 'Redis Publisher client connection failed (running in offline fallback)');
-      }
-    });
+    try {
+      redisPublisherInstance = new Redis(getRedisConfig());
+      redisPublisherInstance.on('connect', () => {
+        redisOnline = true;
+        logger.info('✅ Redis Publisher connected');
+      });
+      redisPublisherInstance.on('error', () => {
+        redisOnline = false;
+        if (!checkDone) {
+          logger.info('💡 Redis offline: using fast in-memory event bus for local dev');
+          checkDone = true;
+        }
+      });
+    } catch {
+      redisOnline = false;
+    }
   }
   return redisPublisherInstance;
 };
 
-export const getRedisSubscriber = (): Redis => {
+export const getRedisSubscriber = (): Redis | null => {
   if (!redisSubscriberInstance) {
-    redisSubscriberInstance = new Redis(getRedisConfig());
-    redisSubscriberInstance.on('connect', () => {
-      isRedisOffline = false;
-      logger.info('Redis Subscriber client connected');
-    });
-    redisSubscriberInstance.on('error', (err) => {
-      if (!isRedisOffline) {
-        logger.warn({ err: err.message }, 'Redis Subscriber client connection failed (running in offline fallback)');
-      }
-    });
+    try {
+      redisSubscriberInstance = new Redis(getRedisConfig());
+      redisSubscriberInstance.on('connect', () => {
+        redisOnline = true;
+      });
+      redisSubscriberInstance.on('error', () => {
+        redisOnline = false;
+      });
+    } catch {
+      redisOnline = false;
+    }
   }
   return redisSubscriberInstance;
 };

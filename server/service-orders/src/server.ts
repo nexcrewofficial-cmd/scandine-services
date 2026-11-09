@@ -4,22 +4,12 @@ import { config } from './config/env.js';
 import { connectDatabase } from './config/database.js';
 import { logger, requestLogger } from '@scan-and-dine/logger';
 import { errorHandler } from '@scan-and-dine/shared-middlewares';
-import { orderRouter } from './modules/orders/order.route.js';
-import { cartRouter } from './modules/cart/cart.route.js';
-import { checkoutRouter } from './modules/checkout/checkout.route.js';
-import { kdsRouter } from './modules/kds/kds.route.js';
-import { transactionRouter } from './modules/transactions/transaction.route.js';
-import { dashboardRouter } from './modules/dashboard/dashboard.route.js';
-import { webhookRouter } from './modules/webhooks/webhook.route.js';
+import { orderRoutes } from './routes.js';
 import { OrderArchiveCron } from './modules/orders/order-archive.cron.js';
 
 const app = express();
 
 app.use(cors());
-
-// Webhooks must precede generic express.json middleware for signature verification
-app.use('/api/v1/webhooks', webhookRouter);
-
 app.use(express.json());
 app.use(requestLogger);
 
@@ -28,14 +18,8 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'service-orders' });
 });
 
-// Routes
-app.use('/api/v1/public/orders', orderRouter);
-app.use('/api/v1/waiter/orders', orderRouter);
-app.use('/api/v1/public/cart', cartRouter);
-app.use('/api/v1/public/checkout', checkoutRouter);
-app.use('/api/v1/kds', kdsRouter);
-app.use('/api/v1/admin/transactions', transactionRouter);
-app.use('/api/v1/admin/dashboard', dashboardRouter);
+// Default API v1 base prefix
+app.use('/api/v1', orderRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
