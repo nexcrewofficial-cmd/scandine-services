@@ -1,0 +1,21 @@
+export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  VENUE_ADMIN = 'VENUE_ADMIN',
+  MANAGER = 'MANAGER',
+  CASHIER = 'CASHIER',
+  WAITER = 'WAITER',
+  KITCHEN_STAFF = 'KITCHEN_STAFF',
+}
+
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+  OTHER = 'OTHER',
+  PREFER_NOT_TO_SAY = 'PREFER_NOT_TO_SAY',
+}
+
+export enum EmploymentType {
+  FULL_TIME = 'FULL_TIME',
+  PART_TIME = 'PART_TIME',
+  CONTRACT = 'CONTRACT',
+}

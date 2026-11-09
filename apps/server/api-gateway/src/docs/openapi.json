@@ -1,0 +1,239 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Scan & Dine API Contract",
+    "description": "Unified OpenAPI Specification for Scan & Dine SaaS Platform. Bridges TypeScript microservices with web frontends and Flutter mobile apps.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "API Gateway (Local Development)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "VenueIdHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-venue-id"
+      },
+      "DeviceUUIDHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-device-uuid"
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "summary": "Gateway Health Check",
+        "tags": ["System"],
+        "responses": {
+          "200": { "description": "Gateway and downstream services status" }
+        }
+      }
+    },
+    "/api/v1/auth/admin/login": {
+      "post": {
+        "summary": "Venue Admin / Manager Login",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "admin@pizzapalace.com" },
+                  "password": { "type": "string", "example": "AdminPass123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "JWT Access & Refresh Tokens" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/v1/auth/staff/login": {
+      "post": {
+        "summary": "Floor / Kitchen Staff PIN Login",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["venueId", "pinCode"],
+                "properties": {
+                  "venueId": { "type": "string" },
+                  "pinCode": { "type": "string", "example": "1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Staff JWT session" },
+          "401": { "description": "Invalid 4-digit PIN" }
+        }
+      }
+    },
+    "/api/v1/public/auth/device": {
+      "post": {
+        "summary": "Frictionless Guest Device Registration (Silent Login)",
+        "tags": ["Customer Web"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deviceUUID"],
+                "properties": {
+                  "deviceUUID": { "type": "string", "example": "dev_98fbc12a" },
+                  "phoneNumber": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Customer profile with loyalty and favorites" }
+        }
+      }
+    },
+    "/api/v1/public/menu/{venueSlug}": {
+      "get": {
+        "summary": "Public Menu Catalog & Categories",
+        "tags": ["Customer Web"],
+        "parameters": [
+          { "name": "venueSlug", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Venue info, categories, and available items" },
+          "404": { "description": "Venue not found" }
+        }
+      }
+    },
+    "/api/v1/admin/menu/items/{id}/availability": {
+      "patch": {
+        "summary": "Instant 86-ing (Out-of-Stock Toggle)",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["isAvailable"],
+                "properties": {
+                  "isAvailable": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Item stock updated and broadcasted via Redis/WebSockets" }
+        }
+      }
+    },
+    "/api/v1/public/checkout/cash": {
+      "post": {
+        "summary": "Submit Order as Pay-Later / Cash at Counter",
+        "tags": ["Orders & Checkout"],
+        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tableNumber": { "type": "string", "example": "5" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Order submitted and pushed to KDS tickets" }
+        }
+      }
+    },
+    "/api/v1/public/checkout/initiate": {
+      "post": {
+        "summary": "Initiate Stripe Card Checkout",
+        "tags": ["Orders & Checkout"],
+        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
+        "responses": {
+          "200": { "description": "Stripe clientSecret and draft orderId" }
+        }
+      }
+    },
+    "/api/v1/kds/tickets": {
+      "get": {
+        "summary": "Fetch Active Kitchen Kanban Tickets with SLA Timers",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [
+          { "name": "stationTag", "in": "query", "schema": { "type": "string", "enum": ["GRILL", "BAR", "DESSERT", "MAIN_KITCHEN"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of active tickets with SLA timer colors (GREEN/YELLOW/FLASHING_RED)" }
+        }
+      }
+    },
+    "/api/v1/public/orders/call-waiter": {
+      "post": {
+        "summary": "Call Waiter Alert from Table",
+        "tags": ["Customer Web"],
+        "security": [{ "VenueIdHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tableNumber"],
+                "properties": {
+                  "tableNumber": { "type": "string", "example": "5" },
+                  "type": { "type": "string", "enum": ["WATER", "BILL", "ASSISTANCE"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Alert dispatched to floor staff devices" }
+        }
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "summary": "Venue Admin Real-Time Metrics & Daily GMV",
+        "tags": ["Venue Admin"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Daily revenue, average ticket, active table counts" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+export enum OrderType {
+  DINE_IN = 'DINE_IN',
+  TAKEAWAY = 'TAKEAWAY',
+  DELIVERY = 'DELIVERY',
+}
+
+export enum OrderStatus {
+  CART = 'CART',
+  PENDING_PAYMENT = 'PENDING_PAYMENT',
+  SENT_TO_KITCHEN = 'SENT_TO_KITCHEN',
+  PREPARING = 'PREPARING',
+  READY = 'READY',
+  SERVED = 'SERVED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum KdsItemStatus {
+  PENDING = 'PENDING',
+  COOKING = 'COOKING',
+  READY = 'READY',
+}
