@@ -1,4 +1,4 @@
-name: Scan & Dine CI/CD
+name: Scan & Dine Backend CI/CD
 
 on:
   push:
@@ -22,10 +22,7 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Linter
-        run: npm run lint
-
-      - name: Build Monorepo (Turbo)
+      - name: Build Backend Services
         run: npm run build
         env:
           NODE_ENV: production

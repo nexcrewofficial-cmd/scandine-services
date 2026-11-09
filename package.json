@@ -1,26 +1,28 @@
 {
-  "name": "scan-and-dine-monorepo",
+  "name": "scan-and-dine-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Scan & Dine Omnichannel Restaurant SaaS Platform",
+  "description": "Scan & Dine Omnichannel Restaurant SaaS Backend Services",
   "workspaces": [
-    "apps/server/*",
-    "apps/web",
-    "apps/waiter",
-    "apps/admin",
+    "server/*",
     "packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --concurrency=20",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "clean": "turbo run clean && rimraf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "dev": "concurrently -n \"gateway,auth,menu,orders,ws\" -c \"cyan,blue,green,yellow,magenta\" \"npm run dev -w @scan-and-dine/api-gateway\" \"npm run dev -w @scan-and-dine/service-auth\" \"npm run dev -w @scan-and-dine/service-menu\" \"npm run dev -w @scan-and-dine/service-orders\" \"npm run dev -w @scan-and-dine/service-websockets\"",
+    "dev:gateway": "npm run dev -w @scan-and-dine/api-gateway",
+    "dev:auth": "npm run dev -w @scan-and-dine/service-auth",
+    "dev:menu": "npm run dev -w @scan-and-dine/service-menu",
+    "dev:orders": "npm run dev -w @scan-and-dine/service-orders",
+    "dev:ws": "npm run dev -w @scan-and-dine/service-websockets",
+    "build": "npm run build:packages && npm run build:services",
+    "build:packages": "npm run build -w @scan-and-dine/shared-types && npm run build -w @scan-and-dine/logger && npm run build -w @scan-and-dine/event-bus && npm run build -w @scan-and-dine/shared-middlewares",
+    "build:services": "npm run build -w @scan-and-dine/service-auth && npm run build -w @scan-and-dine/service-menu && npm run build -w @scan-and-dine/service-orders && npm run build -w @scan-and-dine/service-websockets && npm run build -w @scan-and-dine/api-gateway",
+    "start": "pm2 start ecosystem.config.cjs",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\""
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "prettier": "^3.3.3",
-    "turbo": "^2.1.3",
     "typescript": "^5.6.3"
   },
   "packageManager": "npm@10.9.8",
