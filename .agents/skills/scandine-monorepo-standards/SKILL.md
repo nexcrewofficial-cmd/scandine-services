@@ -1,52 +1,54 @@
 ---
 name: scandine-monorepo-standards
 description: >-
-  Architectural conventions, master routing standards, default /api/v1 base prefix rules,
-  single-port dev-server, SOLID principles, and engineering standards for the Scan & Dine backend microservices platform.
+  Architectural conventions, modular architecture standards, default /api/v1 base prefix rules,
+  single-port dev-server, microservice runners, SOLID principles, and engineering standards for the Scan & Dine backend platform.
 ---
 
-# Scan & Dine Backend Microservices Architecture & Engineering Standards
+# Scan & Dine Backend Architecture & Engineering Standards
 
-This skill is the canonical engineering manual for the **Scan & Dine Backend Platform**. It governs all backend microservices, shared libraries, data schemas, routing conventions, development modes, SOLID design principles, and deployment workflows.
+This skill is the canonical engineering manual for the **Scan & Dine Backend Platform**. It governs all domain modules, shared infrastructure, data schemas, routing conventions, development modes, SOLID design principles, and deployment workflows.
 
 ---
 
 ## 1. Repository Architecture & Directory Topology
 
-The backend is organized with `server/` and `packages/` workspaces:
+The backend is organized as a clean **Modular Architecture (Microservices-Ready)** with a single consolidated `package.json` and `tsconfig.json`:
 
 ```text
 scan-and-dine-backend/
+├── src/
+│   ├── modules/                                  # ── BUSINESS DOMAIN MODULES (Feature Folders) ──
+│   │   ├── auth/                                 # auth/, users/, customers/, shifts/ (each holds own model, service, controller, interfaces, enums)
+│   │   ├── menu/                                 # venues/, categories/, menu-items/, inventory/, promos/, printers/
+│   │   ├── orders/                               # orders/, cart/, transactions/, checkout/, kds/, dashboard/, webhooks/
+│   │   └── websockets/                           # Socket.io real-time server & event-bus bridge
+│   │
+│   ├── shared/                                   # ── REUSABLE SHARED INFRASTRUCTURE ──
+│   │   ├── types/                                # Canonical TypeScript interfaces, enums, & DTOs
+│   │   ├── middlewares/                          # JWT auth, RBAC, Tenancy, Geofence, AppError, Zod validator
+│   │   ├── event-bus/                            # Redis Pub/Sub client with silent local in-memory fallback
+│   │   └── logger/                               # Pino JSON structured logging & HTTP request tracing
+│   │
+│   ├── config/                                   # Centralized environment & payment gateway configs
+│   ├── docs/                                     # OpenAPI / Swagger specification JSON
+│   └── server.ts                                 # Unified server entrypoint (Port 3000 or Microservice runner)
 │
-├── server/                                   # ── BACKEND MICROSERVICES ──
-│   ├── api-gateway/ (Port 3000)              # Public reverse proxy, rate limiter, CORS, Swagger (/api/docs)
-│   ├── service-auth/ (Port 3001)             # Users, RBAC, 4-digit PIN login, HR shifts, device UUID
-│   ├── service-menu/ (Port 3002)             # Menu CMS, categories, items, modifiers, 86-ing toggles, inventory
-│   ├── service-orders/ (Port 3003)           # Cart, checkout, Stripe payment intents, KDS SLA timers, ledger
-│   ├── service-websockets/ (Port 3005)       # Socket.io + Redis Pub/Sub adapter, real-time rooms
-│   └── dev-server.ts                         # Unified Single-Port (3000) Dev Server for instant local dev
-│
-├── packages/                                 # ── SHARED LIBRARIES ──
-│   ├── shared-types/                         # Canonical TypeScript interfaces, enums, & DTOs
-│   ├── shared-middlewares/                   # JWT, RBAC, Tenancy, AppError, Zod validator
-│   ├── event-bus/                            # Redis Pub/Sub client with graceful offline fallback
-│   └── logger/                               # Pino JSON structured logging & HTTP request tracing
-│
-├── ecosystem.config.cjs                      # Production PM2 Cluster Configuration
-├── package.json                              # Dedicated backend workspaces & concurrently runners
-└── tsconfig.base.json                        # Shared TypeScript base configuration
+├── .env.example                                  # Environment variables template
+├── package.json                                  # Single consolidated package.json
+└── tsconfig.json                                 # Single unified TypeScript configuration
 ```
 
 ---
 
 ## 2. SOLID Design Principles in Practice
 
-Every module, class, and service across the platform must adhere strictly to SOLID principles:
+Every module across the platform adheres strictly to SOLID principles:
 
 ### S — Single Responsibility Principle (SRP)
 Each file has one, and only one, reason to change:
 * **`*.route.ts`**: Pure routing, endpoint path definitions, and middleware attachment. Zero business logic.
-* **`*.controller.ts`**: HTTP transport layer. Unpacks `req.body` and `req.params`, invokes the service, formats HTTP status and standard JSON response. Never executes database queries directly.
+* **`*.controller.ts`**: HTTP transport layer wrapped in `asyncHandler`. Zero manual `try/catch` boilerplate. Unpacks `req.body` and `req.params`, invokes the service, formats HTTP status and standard JSON response. Never executes database queries directly.
 * **`*.service.ts`**: Domain business logic, atomic state transitions, event dispatching, and database interactions.
 * **`*.model.ts`**: Mongoose document schemas, compound indexes, and lifecycle hooks.
 * **`*.validation.ts`**: Pure Zod input validation schemas.
@@ -59,195 +61,122 @@ Open for extension, closed for modification:
 * **Middleware Pipelines**: New guards (e.g. geofencing, subscription tier checks) are composed into route pipelines without modifying existing route handlers.
 
 ### L — Liskov Substitution Principle (LSP)
-Subtypes must be substitutable for their base types without altering system correctness:
-* **`AppError` Hierarchy**: Custom error classes (`AppError.notFound`, `AppError.badRequest`, `AppError.conflict`) all inherit from the standard base error class and adhere to `{ statusCode, message, isOperational }`. The global error middleware treats all errors consistently.
-* **Interface Contracts**: Mongoose documents implement canonical interfaces from `@scan-and-dine/shared-types` (e.g. `IOrderDocument extends IOrder`), ensuring they can be passed anywhere an `IOrder` is expected.
+Subtypes must be substitutable for their base types without altering correctness:
+* **Event Bus Handlers**: Event subscribers implement the generic `EventHandler<T>` contract. Any handler can process events without breaking the pub/sub pipeline.
+* **Error Hierarchy**: All custom operational errors inherit from `AppError`. The global `errorHandler` processes any `AppError` subclass uniformly.
 
 ### I — Interface Segregation Principle (ISP)
-Clients must not be forced to depend on interfaces they do not use:
-* **Fine-Grained DTOs**: Never use full database entity models for request validation. Create focused, granular DTOs in `packages/shared-types`:
-  * `CreateOrderDTO` (only fields needed to submit an order)
-  * `UpdateMenuItemDTO` (only updatable catalog fields)
-  * `LoginPINStaffDTO` (only `venueId` and `pinCode`)
-* **Role-Specific Views**: Separate customer-facing DTOs (sanitized, active items only) from admin-facing DTOs (cost margins, supplier info, internal tags).
+Clients should not be forced to depend on methods or fields they do not use:
+* **Fine-Grained DTOs**: Create separate Zod schemas and TypeScript DTOs for `CreateStaffDTO`, `UpdateStaffDTO`, `StaffPinLoginDTO`, and `AdminLoginDTO`.
+* **Scoped Payloads**: WebSocket room events transmit only the minimum fields required by the receiver (e.g. `waiter` room receives table number + items ready, rather than full customer billing history).
 
 ### D — Dependency Inversion Principle (DIP)
-High-level modules must depend on abstractions, not concrete low-level implementations:
-* **Shared Type Contracts**: Services and controllers depend on TypeScript interfaces and enums from `@scan-and-dine/shared-types`, not on each other's internal database models.
-* **Infrastructure Abstractions**:
-  * Logging is abstracted behind `@scan-and-dine/logger` (Pino). Services log via `logger.info()` without binding to log transports.
-  * Messaging is abstracted behind `@scan-and-dine/event-bus`. Services call `publishEvent(channel, data)` without managing Redis socket pools or clustering.
+High-level modules must not depend on low-level modules; both depend on abstractions:
+* **Logger Inversion**: Controllers and services import the abstracted `logger` interface (`@/shared/logger`) rather than instantiating logging libraries directly.
+* **Event-Bus Inversion**: Domain modules publish and subscribe through the `publishEvent` and `subscribeToEvent` abstractions. They do not interact directly with raw Redis or in-memory socket instances.
 
 ---
 
-## 3. Master Routing Standards & The `/api/v1` Base Prefix Rule
+## 3. Master Routing & `/api/v1` Base Prefix Standard
 
-### 🚫 The Anti-Pattern: Never Repeat `/api/v1/`
-Never repeat the string `/api/v1/` on individual route declarations across multiple files.
+### Master Route Aggregation Pattern
+Each domain module under `src/modules/<domain>/routes.ts` exports a single master router:
+* `src/modules/auth/routes.ts` ➔ exports `authRoutes`
+* `src/modules/menu/routes.ts` ➔ exports `menuRoutes`
+* `src/modules/orders/routes.ts` ➔ exports `orderRoutes`
 
-### ✅ The Standard Pattern:
-1. **Sub-Route Modules** define their endpoints cleanly:
+### The Rule: Never Repeat `/api/v1/` on Sub-Routes
+1. **Sub-Route Files**: Sub-routes inside modules mount at their relative paths:
    ```typescript
-   // e.g., modules/categories/category.route.ts
-   router.get('/', CategoryController.list);
-   router.post('/', CategoryController.create);
+   // Correct
+   router.post('/admin/login', ...);
+   router.get('/public/:venueSlug', ...);
+
+   // WRONG - Do not repeat /api/v1
+   router.post('/api/v1/auth/admin/login', ...);
+   ```
+2. **Master Router**: Mounts sub-routes cleanly:
+   ```typescript
+   // src/modules/auth/routes.ts
+   router.use('/auth', authRouter);
+   router.use('/admin/staff', userStaffRouter);
+   router.use('/public/auth', customerAuthRouter);
+   ```
+3. **Application Root**: Mounts the master router once under `/api/v1`:
+   ```typescript
+   // src/server.ts
+   app.use('/api/v1', authRoutes);
+   app.use('/api/v1', menuRoutes);
+   app.use('/api/v1', orderRoutes);
    ```
 
-2. **Master Service Router** (`server/<service>/src/routes.ts`):
-   Each microservice aggregates its domain routes **without** the `/api/v1` prefix:
-   ```typescript
-   // server/service-menu/src/routes.ts
-   import { Router } from 'express';
-   const router = Router();
-
-   router.use('/admin/settings', venueRouter);
-   router.use('/admin/menu/categories', categoryRouter);
-   router.use('/admin/menu/items', menuItemRouter);
-   router.use('/public/menu', menuItemRouter);
-   router.use('/admin/inventory', inventoryRouter);
-   router.use('/admin/promos', promoRouter);
-   router.use('/admin/printers', printerRouter);
-
-   export const menuRoutes = router;
-   ```
-
-3. **Master Base Prefix**:
-   Mount `/api/v1` **once as the default prefix**:
-   * **In each standalone microservice (`server.ts`)**:
-     ```typescript
-     app.use('/api/v1', menuRoutes);
-     ```
-   * **In the unified development server (`server/dev-server.ts`)**:
-     ```typescript
-     const apiV1Router = Router();
-     apiV1Router.use(authRoutes);
-     apiV1Router.use(menuRoutes);
-     apiV1Router.use(orderRoutes);
-
-     app.use('/api/v1', apiV1Router);
-     ```
-
 ---
 
-## 4. End-to-End System & Code Flow
+## 4. Execution Modes: Unified Dev vs Microservices
 
-### Phase 1: Menu & Catalog Discovery
-1. Client requests menu: `GET /api/v1/public/menu/:venueSlug`.
-2. Router forwards to `service-menu` (`Port 3002` or unified dev-server).
-3. `service-menu` retrieves categories, items, and active modifiers where `isActive: true` and `deletedAt: null`.
-
-### Phase 2: Ordering & Real-Time Sync
-1. Client submits cart: `POST /api/v1/public/checkout/cash` (or Stripe payment intent).
-2. Request processed by `service-orders`:
-   - Calculates financial totals (tax, subtotal, tip).
-   - Generates sequential order number.
-   - Saves order document with `version: 0` and `status: SENT_TO_KITCHEN`.
-   - Calls `publishEvent(EventChannels.ORDER_CREATED, { venueId, orderId, tableNumber, ... })`.
-3. WebSocket Engine receives Redis event:
-   - Emits `order_created` to room `kds:{venueId}` (Kitchen display chimes).
-   - Emits `table_status_changed` to room `venue:{venueId}` (Waiter tablet highlights table yellow).
-
-### Phase 3: Kitchen Cooking & Completion
-1. Kitchen chef marks item/ticket ready: `PATCH /api/v1/kds/tickets/:id/status` (`READY`).
-2. `service-orders` increments document version (`$inc: { version: 1 }`).
-3. Dispatches `EventChannels.FOOD_READY`.
-4. WebSocket Engine broadcasts to waiter and customer rooms.
-
-### Phase 4: Waiter Settlement & 86-ing Stock
-1. If a dish sells out, kitchen marks it unavailable: `PATCH /api/v1/admin/menu/items/:id/availability`.
-2. `service-menu` publishes `EventChannels.ITEM_86ED`.
-3. WebSocket Engine broadcasts to `venue:{venueId}`:
-   - All connected customer apps gray out the item instantly.
-   - Waiter tablets disable item selection immediately.
-
----
-
-## 5. Where to Write Code (Directory Guide)
-
-### A. Microservices Code (`server/<service>/`)
-All backend microservices strictly use the **Domain Feature-Module Pattern**:
-
-```text
-server/<service-name>/src/
-├── config/                      # env.ts, database.ts
-├── modules/
-│   └── <featureName>/           # e.g. orders, categories, staff, kds
-│       ├── <feature>.route.ts       # Express route handlers, auth guards (SRP: Routing only)
-│       ├── <feature>.controller.ts  # Request body/param extraction (SRP: HTTP transport only)
-│       ├── <feature>.service.ts     # Business logic, DB operations, events (SRP: Domain rules only)
-│       ├── <feature>.model.ts       # Mongoose Schema & multi-tenant indexes (SRP: Data schema only)
-│       ├── <feature>.validation.ts  # Zod schemas for input validation (SRP: Validation only)
-│       └── <feature>.utils.ts       # Pure helper functions (SRP: Calculations only)
-├── routes.ts                    # Master Service Router (Exports <service>Routes)
-└── server.ts                    # Microservice entry point & /api/v1 mount
-```
-
-### B. Shared Libraries (`packages/`)
-* **`packages/shared-types`**: Canonical interfaces (`IOrder`, `IMenuItem`, `IUser`), request DTOs (`CreateOrderDTO`), and Enums (`UserRole`, `OrderStatus`).
-* **`packages/shared-middlewares`**: Auth guards (`authenticateJwt`, `requireRole`, `requireVenueId`), error handlers (`errorHandler`, `AppError`), and Zod validation middlewares (`validateRequest`).
-* **`packages/event-bus`**: Redis Pub/Sub events, channel constants (`EventChannels`), and offline dev fallback.
-* **`packages/logger`**: Pino structured JSON logging and HTTP request logger middleware.
-
----
-
-## 6. Development & Production Operations
-
-### 1. Single-Port Development Mode (Recommended for Local Dev)
-Run all REST APIs, Swagger docs, and WebSockets on **Port 3000** in one terminal:
-```bash
-npm run dev
-```
+### A. Unified Dev Server (Default: `npm run dev`)
+In local development, all modules, Swagger docs, and WebSockets run on **Port 3000**:
 * **Base REST API**: `http://localhost:3000/api/v1/`
-* **Swagger Docs**: `http://localhost:3000/api/docs`
-* **WebSockets**: `ws://localhost:3000` (attached on same port)
+* **Swagger UI**: `http://localhost:3000/api/docs`
+* **WebSockets**: `ws://localhost:3000`
 * **Health Check**: `http://localhost:3000/api/v1/health`
 
-### 2. Multi-Port Microservices Mode
-Run all 5 microservices as independent isolated processes (Ports 3000, 3001, 3002, 3003, 3005):
-```bash
-npm run dev:microservices
-```
-
-Or run any single service individually:
-```bash
-npm run dev:gateway   # Port 3000
-npm run dev:auth      # Port 3001
-npm run dev:menu      # Port 3002
-npm run dev:orders    # Port 3003
-npm run dev:ws        # Port 3005
-```
-
-### 3. Production Deployment (PM2)
-```bash
-npm run build
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup
-```
+### B. Microservice Runners
+To run any domain as an isolated microservice on its dedicated port:
+* `npm run start:auth` ➔ Runs only Auth on Port 3001
+* `npm run start:menu` ➔ Runs only Menu on Port 3002
+* `npm run start:orders` ➔ Runs only Orders on Port 3003
+* `npm run start:ws` ➔ Runs only WebSockets on Port 3005
 
 ---
 
-## 7. Multi-Tenancy & Concurrency Rules
+## 5. Event-Driven Communication & Graceful Dev Fallback
 
-1. **Mandatory `venueId` Scoping**:
-   Every database query, insertion, update, or deletion **must** filter by `{ venueId: req.venueId }`:
-   ```typescript
-   // ✅ CORRECT:
-   const items = await MenuItemModel.find({ venueId: req.venueId, deletedAt: null });
+* **Production**: Real-time events publish across Redis channels for multi-container scaling.
+* **Development**: When local Redis is offline, `@/shared/event-bus` silently uses `localEventBus` (Node `EventEmitter`), so all pub/sub events work with zero errors.
 
-   // ❌ ILLEGAL (Data leak risk):
-   const items = await MenuItemModel.find({ _id: itemId });
-   ```
+---
 
-2. **Optimistic Concurrency Locking**:
-   State transitions on orders and payments must use document versioning with atomic `$inc: { version: 1 }`:
-   ```typescript
-   const updated = await OrderModel.findOneAndUpdate(
-     { _id: orderId, venueId, version: currentVersion },
-     { $set: updates, $inc: { version: 1 } },
-     { new: true }
-   );
-   if (!updated) {
-     throw AppError.conflict('Order was modified by another staff member. Please refresh.');
-   }
-   ```
+## 6. Real-Time WebSocket Rooms & Events
+
+* **Namespaces / Rooms**: `venue:{venueId}`, `kds:{venueId}`, `waiter:{venueId}`, `table:{venueId}:{tableNumber}`, `order:{orderId}`
+* **Events**: `ORDER_CREATED`, `ORDER_STATUS_CHANGED`, `FOOD_READY`, `TABLE_CALL_WAITER`, `ITEM_86ED`, `ITEM_RESTOCKED`, `CART_SESSION_UPDATED`
+
+---
+
+## 7. Controller Response Standardization (`responseUtils` & `successMessage`)
+
+All controller handlers must be wrapped in `asyncHandler` and return standardized responses using `responseUtils.success`:
+
+```typescript
+import { Request, Response } from 'express';
+import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+
+export class ExampleController {
+  static getData = asyncHandler(async (req: Request, res: Response) => {
+    const data = await ExampleService.getData();
+    return responseUtils.success(res, {
+      data,
+      message: successMessage.dataFetched,
+      status: 200,
+    });
+  });
+}
+```
+
+### Standard Response Envelope Format:
+```json
+{
+  "success": true,
+  "message": "Data fetched successfully",
+  "data": { ... },
+  "meta": { "count": 10 }
+}
+```
+
+### Response Helpers (`src/shared/utils/response.util.ts`):
+- `responseUtils.success(res, { data, message, status, meta })`
+- `responseUtils.created(res, { data, message, status, meta })`
+- `responseUtils.error(res, { message, status, error })`
+- `successMessage` provides typed constants (`dataFetched`, `created`, `updated`, `deleted`, `loginSuccess`, etc.).
+

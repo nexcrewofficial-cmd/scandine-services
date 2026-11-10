@@ -1,33 +1,35 @@
-# 🍽️ Scan & Dine — Backend Microservices Platform
+# 🍽️ Scan & Dine — Modular Backend Platform
 
 > **Scan & Dine Backend** is an enterprise-grade, multi-tenant SaaS backend modernizing restaurant, cafe, and food court operations with QR-based digital ordering, real-time kitchen display systems (KDS), floor staff cart mirroring, and automated billing.
 
 ---
 
-## 🏛️ Architecture & Services Overview
+## 🏛️ Architecture: Modular Architecture (Microservices-Ready)
 
-The repository is structured with `server/` and `packages/`:
+The backend is organized as a clean **Modular Architecture**, where each business domain is strictly decoupled into its own folder under `src/modules/` and common infrastructure is shared in `src/shared/`:
 
 ```text
 scan-and-dine-backend/
+├── src/
+│   ├── modules/                       # ── BUSINESS DOMAINS (Feature Folders) ──
+│   │   ├── auth/                      # auth/, users/, customers/, shifts/ (each holds its own model, service, routes, interfaces, enums)
+│   │   ├── menu/                      # venues/, categories/, menu-items/, inventory/, promos/, printers/
+│   │   ├── orders/                    # orders/, cart/, transactions/, checkout/, kds/, dashboard/, webhooks/
+│   │   └── websockets/                # Real-time Socket.io floor & kitchen event bus relay
+│   │
+│   ├── shared/                        # ── SHARED INFRASTRUCTURE ──
+│   │   ├── types/                     # TypeScript interfaces, enums, & DTOs
+│   │   ├── middlewares/               # JWT auth, RBAC, Tenancy, Geofencing, Zod validation
+│   │   ├── event-bus/                 # Pub/Sub layer (Redis with silent local fallback)
+│   │   └── logger/                    # Pino structured JSON logging & HTTP tracing
+│   │
+│   ├── config/                        # Unified environment & payment configurations
+│   ├── docs/                          # OpenAPI / Swagger JSON specification
+│   └── server.ts                      # Main entrypoint (Port 3000 unified or microservice runner)
 │
-├── server/                                   # ── BACKEND MICROSERVICES ──
-│   ├── api-gateway/ (Port 3000)              # Public reverse proxy, rate limiting, CORS, Swagger (/api/docs)
-│   ├── service-auth/ (Port 3001)             # Users, RBAC, 4-digit PIN login, HR shifts, device UUID
-│   ├── service-menu/ (Port 3002)             # Menu CMS, categories, 86-ing stock toggles, inventory, promos
-│   ├── service-orders/ (Port 3003)           # Cart, checkout, Stripe payment intents, KDS SLA timers, ledger
-│   ├── service-websockets/ (Port 3005)       # Socket.io + Redis adapter, rooms for venue, KDS, & tables
-│   └── dev-server.ts                         # Unified Single-Port (3000) Dev Server for instant local dev
-│
-├── packages/                                 # ── SHARED LIBRARIES ──
-│   ├── shared-types/                         # TypeScript interfaces, enums, & DTOs
-│   ├── shared-middlewares/                   # JWT, RBAC, Tenancy, Feature Flags, Zod validator
-│   ├── event-bus/                            # Redis Pub/Sub wrapper with graceful offline fallback
-│   └── logger/                               # Pino JSON structured logging & HTTP tracing
-│
-├── ecosystem.config.cjs                      # Production PM2 Cluster Configuration
-├── package.json                              # Dedicated backend workspaces & dev runners
-└── tsconfig.base.json                        # Shared TypeScript base configuration
+├── .env.example                       # Environment configuration template
+├── package.json                       # Single consolidated package.json
+└── tsconfig.json                      # Single unified TypeScript configuration
 ```
 
 ---
@@ -45,8 +47,8 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-### 3. Run Everything on a Single Port (Recommended for Dev)
-To boot all APIs, Swagger docs, and WebSockets together on **Port 3000** in one terminal:
+### 3. Start Dev Server (Unified Mode - Port 3000)
+Boots all APIs, Swagger docs, and WebSockets together on **Port 3000** in one second:
 ```bash
 npm run dev
 ```
@@ -58,38 +60,23 @@ npm run dev
 
 ---
 
-### 4. Or Run Full Microservices Mode (Multi-Port)
-To run all 5 microservices as independent isolated processes:
-```bash
-npm run dev:microservices
-```
+### 4. Running as Independent Microservices
+Because each module is 100% self-contained, you can run any individual service on its own port:
 
-Or start any individual service by itself:
 ```bash
-npm run dev:gateway   # Port 3000
-npm run dev:auth      # Port 3001
-npm run dev:menu      # Port 3002
-npm run dev:orders    # Port 3003
-npm run dev:ws        # Port 3005
+npm run start:auth     # Runs ONLY Auth domain on Port 3001
+npm run start:menu     # Runs ONLY Menu domain on Port 3002
+npm run start:orders   # Runs ONLY Orders domain on Port 3003
+npm run start:ws       # Runs ONLY WebSockets on Port 3005
 ```
 
 ---
 
-## 🔨 Building the Backend
+## 🔨 Building for Production
 
 ```bash
 npm run build
-```
-
----
-
-## 🌐 Running in Production (PM2)
-
-```bash
-npm run build
-pm2 start ecosystem.config.cjs
-pm2 save
-pm2 startup
+npm start
 ```
 
 ---

@@ -11,16 +11,27 @@ coverage/
 # Environment files
 .env
 .env.local
+.env.*.local
+!.env.example
 
 # Logs
 logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
 # OS Files
 .DS_Store
 Thumbs.db
 
-# IDE Files
+# IDE & Editor Files
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Caches
+.cache/
+.turbo/
+tmp/

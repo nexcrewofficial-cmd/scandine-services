@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@scan-and-dine/shared-types": ["src/shared/types/index.ts"],
+      "@scan-and-dine/shared-middlewares": ["src/shared/middlewares/index.ts"],
+      "@scan-and-dine/event-bus": ["src/shared/event-bus/index.ts"],
+      "@scan-and-dine/logger": ["src/shared/logger/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}
