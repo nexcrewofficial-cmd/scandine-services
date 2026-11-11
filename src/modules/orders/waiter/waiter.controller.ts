@@ -41,7 +41,7 @@ export class WaiterController {
     const data = await WaiterService.markOrderServed(venueId, req.params.id as string);
     return responseUtils.success(res, {
       data,
-      message: 'Order marked as served',
+      message: successMessage.foodServed,
       status: 200,
     });
   });
@@ -55,7 +55,7 @@ export class WaiterController {
     );
     return responseUtils.success(res, {
       data,
-      message: 'Order voided successfully with manager authorization',
+      message: successMessage.orderVoided,
       status: 200,
     });
   });
@@ -81,7 +81,7 @@ export class WaiterController {
     );
     return responseUtils.success(res, {
       data,
-      message: 'Cash payment collected and order settled',
+      message: successMessage.paymentCollected,
       status: 200,
     });
   });
@@ -92,11 +92,11 @@ export class WaiterController {
     const data = await WaiterService.requestRemoteBillPrint(
       venueId,
       req.params.id as string,
-      tableNumber || ''
+      tableNumber || ""
     );
     return responseUtils.success(res, {
       data,
-      message: 'Bill print request sent to POS hub',
+      message: successMessage.billPrintRequested,
       status: 200,
     });
   });

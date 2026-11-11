@@ -41,7 +41,7 @@ export class KDSController {
 
     return responseUtils.success(res, {
       data,
-      message: 'Item status updated',
+      message: successMessage.updated("Item status"),
       status: 200,
     });
   });

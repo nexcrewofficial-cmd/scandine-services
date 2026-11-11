@@ -5,7 +5,7 @@ import { TransactionModel } from '../transactions/transaction.model.js';
 import { UserModel } from '../../auth/users/user.model.js';
 import { MenuItemModel } from '../../menu/menu-items/menu-item.model.js';
 import { VenueModel } from '../../menu/venues/venue.model.js';
-import { AppError } from '../../../shared/middlewares/index.js';
+import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
 import {
   OrderStatus,
   OrderType,
@@ -151,7 +151,7 @@ export class WaiterService {
     for (const inputItem of dto.items) {
       const menuItem = itemMap.get(inputItem.menuItemId);
       if (!menuItem) {
-        throw AppError.badRequest(`Menu item ${inputItem.menuItemId} not found`);
+        throw AppError.badRequest(errorMessage.notFound("Menu item"));
       }
 
       let unitPrice = menuItem.price;
@@ -235,7 +235,7 @@ export class WaiterService {
   static async markOrderServed(venueId: string, orderId: string): Promise<IOrderDocument> {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order not found');
+      throw AppError.notFound(errorMessage.notFound("Order"));
     }
 
     order.status = OrderStatus.SERVED;
@@ -296,13 +296,13 @@ export class WaiterService {
     }
 
     if (!approvedManager) {
-      throw AppError.unauthorized('Manager authorization required. Invalid 4-digit PIN code.');
+      throw AppError.unauthorized(errorMessage.invalidPin);
     }
 
     // 2. Void the order
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order not found');
+      throw AppError.notFound(errorMessage.notFound("Order"));
     }
 
     order.status = OrderStatus.CANCELLED;
@@ -357,7 +357,7 @@ export class WaiterService {
   ): Promise<IOrderDocument> {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order not found');
+      throw AppError.notFound(errorMessage.notFound("Order"));
     }
 
     if (amountReceived < order.financials.grandTotal) {
@@ -409,7 +409,7 @@ export class WaiterService {
   ) {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order not found');
+      throw AppError.notFound(errorMessage.notFound("Order"));
     }
 
     const payload = {

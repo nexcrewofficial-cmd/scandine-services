@@ -1,7 +1,7 @@
 import { OrderModel, IOrderDocument } from '../orders/order.model.js';
 import { VenueModel } from '../../menu/venues/venue.model.js';
 import { MenuItemModel } from '../../menu/menu-items/menu-item.model.js';
-import { AppError } from '../../../shared/middlewares/index.js';
+import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
 import { OrderStatus, KdsItemStatus } from '../orders/order.enum.js';
 import { publishEvent, EventChannels } from '../../../shared/event-bus/index.js';
 import {
@@ -107,7 +107,7 @@ export class KDSService {
   ): Promise<IOrderDocument> {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order ticket not found');
+      throw AppError.notFound(errorMessage.notFound("Order ticket"));
     }
 
     order.status = nextStatus;
@@ -163,7 +163,7 @@ export class KDSService {
   ): Promise<IOrderDocument> {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order ticket not found');
+      throw AppError.notFound(errorMessage.notFound("Order ticket"));
     }
 
     if (!order.items[itemIndex]) {
@@ -225,7 +225,7 @@ export class KDSService {
   ): Promise<IOrderDocument> {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order ticket not found');
+      throw AppError.notFound(errorMessage.notFound("Order ticket"));
     }
 
     if (order.status !== OrderStatus.READY) {
@@ -264,7 +264,7 @@ export class KDSService {
   ): Promise<KOTPrintSlip> {
     const order = await OrderModel.findOne({ _id: orderId, venueId });
     if (!order) {
-      throw AppError.notFound('Order ticket not found');
+      throw AppError.notFound(errorMessage.notFound("Order ticket"));
     }
 
     const venue = await VenueModel.findById(venueId);
@@ -349,7 +349,7 @@ export class KDSService {
   static async toggleItemAvailability(venueId: string, itemId: string, isAvailable: boolean) {
     const item = await MenuItemModel.findOne({ _id: itemId, venueId, deletedAt: null });
     if (!item) {
-      throw AppError.notFound('Menu item not found');
+      throw AppError.notFound(errorMessage.notFound("Menu item"));
     }
 
     item.isAvailable = isAvailable;

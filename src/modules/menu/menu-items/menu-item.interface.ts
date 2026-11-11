@@ -1,7 +1,7 @@
-import { StationTag, DietaryTag, Allergen } from './menu-item.enum.js';
-import { BaseEventPayload } from '../../../shared/event-bus/index.js';
+import { StationTag, DietaryTag, Allergen } from "./menu-item.enum.js";
+import { BaseEventPayload } from "../../../shared/event-bus/index.js";
 
-export * from './menu-item.enum.js';
+export * from "./menu-item.enum.js";
 
 export interface IModifierOption {
   name: string;

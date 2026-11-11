@@ -1,13 +1,24 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from "express";
+import { logger } from "../logger/index.js";
 
-type AsyncRequestHandler = (
+export type ControllerHandler = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => Promise<any> | any;
 
-export const asyncHandler = (fn: AsyncRequestHandler): RequestHandler => {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+export const asyncHandler = (fn: ControllerHandler): RequestHandler => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await fn(req, res, next);
+    } catch (err: any) {
+      const errorPayload = err.response?.data || err.message || err;
+      console.error("❌ Controller Error:", errorPayload);
+      logger.error(
+        { err },
+        `[Controller Error]: ${typeof errorPayload === "object" ? JSON.stringify(errorPayload) : errorPayload}`
+      );
+      next(err);
+    }
   };
 };

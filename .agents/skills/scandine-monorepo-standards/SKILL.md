@@ -55,7 +55,7 @@ Every module across the platform adheres strictly to SOLID principles:
 ### S — Single Responsibility Principle (SRP)
 Each file has one, and only one, reason to change:
 * **`*.route.ts`**: Pure routing, endpoint path definitions, and middleware attachment. Zero business logic.
-* **`*.controller.ts`**: HTTP transport layer wrapped in `asyncHandler`. Zero manual `try/catch` boilerplate. Unpacks `req.body` and `req.params`, invokes the service, formats HTTP status and standard JSON response. Never executes database queries directly.
+* **`*.controller.ts`**: HTTP transport layer wrapped in `errorWrapper` (or `asyncHandler`). Zero manual `try/catch` boilerplate. Unpacks `req.body` and `req.params`, invokes the service, formats HTTP status and standard JSON response. Never executes database queries directly.
 * **`*.service.ts`**: Domain business logic, atomic state transitions, event dispatching, and database interactions.
 * **`*.model.ts`**: Mongoose document schemas, compound indexes, and lifecycle hooks.
 * **`*.validation.ts`**: Pure Zod input validation schemas.
@@ -151,16 +151,22 @@ To run any domain as an isolated microservice on its dedicated port:
 
 ---
 
-## 7. Controller Response Standardization (`responseUtils` & `successMessage`)
+## 7. Controller Error Wrapping & Response Standardization
 
-All controller handlers must be wrapped in `asyncHandler` and return standardized responses using `responseUtils.success`:
+### Controller Error Wrapper Pattern (`errorWrapper` / `asyncHandler`)
+All asynchronous controller handlers must be wrapped in `errorWrapper` (or its alias `asyncHandler`).
+This standard ensures:
+1. Every async operation runs inside a standardized `try/catch` execution wrapper.
+2. Immediate terminal debugging is printed via `console.error("❌ Controller Error:", ...)`, including third-party API payloads (`err.response?.data`).
+3. Structured logging is sent via `logger.error(...)`.
+4. The error is cleanly forwarded to Express centralized error handling via `next(err)` without unhandled Promise rejections.
 
 ```typescript
-import { Request, Response } from 'express';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { errorWrapper, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class ExampleController {
-  static getData = asyncHandler(async (req: Request, res: Response) => {
+  static getData = errorWrapper(async (req: Request, res: Response) => {
     const data = await ExampleService.getData();
     return responseUtils.success(res, {
       data,
@@ -171,7 +177,8 @@ export class ExampleController {
 }
 ```
 
-### Standard Response Envelope Format:
+### Standard Response Envelope Format (`responseUtils` & `successMessage`)
+All controller handlers return standardized responses using `responseUtils.success`:
 ```json
 {
   "success": true,
@@ -194,5 +201,62 @@ export class ExampleController {
 1. **Raw OpenAPI JSON**: Exposed at `GET /api/docs.json` (and Swagger UI at `/api/docs`).
 2. **Postman Generator**: Run `npm run postman:gen` to automatically compile `src/docs/openapi.json` into `postman_collection.json`.
 3. **Postman Cloud Auto-Sync**: Define `POSTMAN_API_KEY` and `POSTMAN_COLLECTION_UID` in `.env` to push collection changes to the cloud automatically.
+
+---
+
+## 9. String Formatting & Quotation Standard
+
+* **Double Quotes (`"`) Mandatory**: All string literals across the entire codebase (imports, routes, logs, object properties, return messages, enums, etc.) must be written inside double quotes (`"`).
+* Avoid single quotes (`'`) in any TypeScript/JavaScript source files.
+
+---
+
+## 10. Centralized Message Constants & Reusable Builders Standard
+
+* **Zero Hardcoded Messages Rule**: Never hardcode user-facing success or error message string literals directly inside controllers, services, or middleware.
+* **Reusable Builder Functions (Pass Field/Entity Name First)**:
+  Instead of declaring repetitive entries like `orderNotFound`, `tableNotFound`, `menuItemNotFound`, always call the parameterized builder functions by passing the target entity/field name first:
+  ```typescript
+  // Reusable Error Builders
+  errorMessage.notFound("Order")        // "Order not found"
+  errorMessage.notFound("Table")        // "Table not found"
+  errorMessage.alreadyExists("Table")   // "Table already exists"
+  errorMessage.isRequired("Venue ID")   // "Venue ID is required"
+  errorMessage.invalid("Manager PIN")   // "Invalid Manager PIN provided"
+  errorMessage.alreadyVoided("Order")   // "This order has already been voided"
+
+  // Reusable Success Builders
+  successMessage.fetched("Floor map")   // "Floor map fetched successfully"
+  successMessage.created("Order")       // "Order created successfully"
+  successMessage.updated("KDS Item")    // "KDS Item updated successfully"
+  successMessage.deleted("Promo code")  // "Promo code deleted successfully"
+  ```
+* **Single Source of Truth**: All messages and builders reside in `src/shared/constants/messages.constant.ts` (re-exported via `src/shared/middlewares/index.js` and `src/shared/utils/index.js`).
+* **Usage in Services**:
+  ```typescript
+  import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
+
+  if (!order) {
+    throw new AppError(errorMessage.notFound("Order"), 404);
+  }
+
+  if (cart.items.length === 0) {
+    throw new AppError(errorMessage.cartEmpty, 400);
+  }
+  ```
+* **Usage in Controllers**:
+  ```typescript
+  import { responseUtils, successMessage } from "../../../shared/middlewares/index.js";
+
+  return responseUtils.success(res, {
+    data,
+    message: successMessage.created("Order"),
+    status: 201,
+  });
+  ```
+* **Double Quotes (`"`) Mandatory**: Every message definition inside `messages.constant.ts` and codebase must strictly use double quotes.
+
+
+
 
 

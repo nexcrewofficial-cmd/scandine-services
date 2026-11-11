@@ -4,10 +4,10 @@ import {
   KdsItemStatus,
   PaymentStatus,
   PaymentMethod,
-} from './order.enum.js';
-import { BaseEventPayload } from '../../../shared/event-bus/index.js';
+} from "./order.enum.js";
+import { BaseEventPayload } from "../../../shared/event-bus/index.js";
 
-export * from './order.enum.js';
+export * from "./order.enum.js";
 
 export interface ISelectedModifier {
   groupName: string;
@@ -92,7 +92,7 @@ export interface VoidOrderDTO {
 export interface CallWaiterDTO {
   venueId: string;
   tableNumber: string;
-  type?: 'WATER' | 'BILL' | 'ASSISTANCE';
+  type?: "WATER" | "BILL" | "ASSISTANCE";
 }
 
 export interface OrderEventPayload extends BaseEventPayload {
@@ -105,6 +105,6 @@ export interface OrderEventPayload extends BaseEventPayload {
 
 export interface TableCallEventPayload extends BaseEventPayload {
   tableNumber: string;
-  type: 'WATER' | 'BILL' | 'ASSISTANCE';
+  type: "WATER" | "BILL" | "ASSISTANCE";
 }
 

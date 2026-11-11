@@ -1,12 +1,12 @@
-import http from 'http';
-import { Server, Socket } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
-import { Redis } from 'ioredis';
-import { logger } from '../../shared/logger/index.js';
-import { subscribeToEvent, EventChannels } from '../../shared/event-bus/index.js';
-import { config } from '../../config/env.js';
-import { OrderEventPayload, TableCallEventPayload } from '../orders/orders/order.interface.js';
-import { ItemStockEventPayload } from '../menu/menu-items/menu-item.interface.js';
+import http from "http";
+import { Server, Socket } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { Redis } from "ioredis";
+import { logger } from "../../shared/logger/index.js";
+import { subscribeToEvent, EventChannels } from "../../shared/event-bus/index.js";
+import { config } from "../../config/env.js";
+import { OrderEventPayload, TableCallEventPayload } from "../orders/orders/order.interface.js";
+import { ItemStockEventPayload } from "../menu/menu-items/menu-item.interface.js";
 
 let io: Server | null = null;
 

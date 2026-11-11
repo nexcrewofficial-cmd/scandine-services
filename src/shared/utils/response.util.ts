@@ -1,47 +1,31 @@
-import { Response } from 'express';
+import { Response } from "express";
+import { successMessage, errorMessage } from "../constants/messages.constant.js";
+
+export * from "../constants/messages.constant.js";
+
+export type MessageType = string | ((field?: string) => string);
 
 export interface SuccessResponseOptions<T = any> {
   data?: T;
-  message?: string;
+  message?: MessageType;
   status?: number;
   meta?: Record<string, any>;
 }
 
 export interface ErrorResponseOptions {
-  message?: string;
+  message?: MessageType;
   status?: number;
   error?: any;
 }
-
-export const successMessage = {
-  dataFetched: 'Data fetched successfully',
-  created: 'Resource created successfully',
-  updated: 'Resource updated successfully',
-  deleted: 'Resource deleted successfully',
-  loginSuccess: 'Logged in successfully',
-  logoutSuccess: 'Logged out successfully',
-  operationSuccess: 'Operation completed successfully',
-  itemAddedToCart: 'Item added to cart successfully',
-  cartCleared: 'Cart cleared successfully',
-  orderCreated: 'Order created successfully',
-  orderStatusUpdated: 'Order status updated successfully',
-  waiterCalled: 'Waiter has been called to your table',
-  refundProcessed: 'Refund processed successfully',
-  clockedIn: 'Clocked in successfully',
-  clockedOut: 'Clocked out successfully',
-} as const;
 
 export const responseUtils = {
   success: <T = any>(
     res: Response,
     options: SuccessResponseOptions<T> = {}
   ): Response => {
-    const {
-      data,
-      message = successMessage.operationSuccess,
-      status = 200,
-      meta,
-    } = options;
+    const rawMessage = options.message ?? successMessage.operationSuccess;
+    const message = typeof rawMessage === "function" ? rawMessage() : rawMessage;
+    const { data, status = 200, meta } = options;
 
     const responsePayload: Record<string, any> = {
       success: true,
@@ -66,7 +50,7 @@ export const responseUtils = {
     return responseUtils.success(res, {
       ...options,
       status: options.status || 201,
-      message: options.message || successMessage.created,
+      message: options.message || successMessage.created(),
     });
   },
 
@@ -74,11 +58,9 @@ export const responseUtils = {
     res: Response,
     options: ErrorResponseOptions = {}
   ): Response => {
-    const {
-      message = 'An unexpected error occurred',
-      status = 500,
-      error,
-    } = options;
+    const rawMessage = options.message ?? errorMessage.internalServerError;
+    const message = typeof rawMessage === "function" ? rawMessage() : rawMessage;
+    const { status = 500, error } = options;
 
     return res.status(status).json({
       success: false,
