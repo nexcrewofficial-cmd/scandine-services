@@ -27,3 +27,7 @@ export const validateRequest = (schema: {
     }
   };
 };
+
+export const validateBody = (schema: AnyZodObject) => {
+  return validateRequest({ body: schema });
+};

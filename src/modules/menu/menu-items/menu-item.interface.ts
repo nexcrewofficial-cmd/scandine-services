@@ -1,4 +1,5 @@
 import { StationTag, DietaryTag, Allergen } from './menu-item.enum.js';
+import { BaseEventPayload } from '../../../shared/event-bus/index.js';
 
 export * from './menu-item.enum.js';
 
@@ -70,3 +71,9 @@ export interface CreateMenuItemDTO {
 export interface UpdateMenuItemDTO extends Partial<CreateMenuItemDTO> {
   isAvailable?: boolean;
 }
+
+export interface ItemStockEventPayload extends BaseEventPayload {
+  menuItemId: string;
+  isAvailable: boolean;
+}
+

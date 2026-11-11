@@ -53,7 +53,7 @@ export class MenuItemController {
     });
   });
 
-  // 86-ing Toggle (Kitchen / Admin)
+  // Stock Availability Toggle (Kitchen / Admin)
   static toggleStock = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
     const data = await MenuItemService.toggleAvailability(
@@ -63,7 +63,7 @@ export class MenuItemController {
     );
     return responseUtils.success(res, {
       data,
-      message: data.isAvailable ? 'Item marked in-stock' : 'Item 86-ed (out of stock)',
+      message: data.isAvailable ? 'Item marked in-stock' : 'Item marked out of stock',
       status: 200,
     });
   });

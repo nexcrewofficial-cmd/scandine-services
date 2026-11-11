@@ -435,7 +435,7 @@
     },
     "/api/v1/menu-items/{id}/stock": {
       "patch": {
-        "summary": "86-ing Toggle (In-Stock / Out-of-Stock)",
+        "summary": "Toggle Item Stock Availability (In-Stock / Out-of-Stock)",
         "tags": ["KDS & Kitchen"],
         "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
@@ -709,21 +709,274 @@
         "tags": ["KDS & Kitchen"],
         "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
         "parameters": [
-          { "name": "stationTag", "in": "query", "schema": { "type": "string", "enum": ["GRILL", "BAR", "DESSERT", "MAIN_KITCHEN"] } }
+          { "name": "stationTag", "in": "query", "schema": { "type": "string", "enum": ["GRILL", "BAR", "DESSERT", "MAIN_KITCHEN"] } },
+          { "name": "view", "in": "query", "schema": { "type": "string", "enum": ["kanban", "flat"] } }
         ],
         "responses": {
-          "200": { "description": "List of active tickets" }
+          "200": { "description": "List of active tickets with SLA timer colors (GREEN/YELLOW/FLASHING_RED)" }
         }
       }
     },
     "/api/v1/kds/tickets/{id}/status": {
       "patch": {
-        "summary": "Advance KDS Ticket Status",
+        "summary": "Advance Entire Ticket Status",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["SENT_TO_KITCHEN", "PREPARING", "READY"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Ticket status updated and event broadcast" }
+        }
+      }
+    },
+    "/api/v1/kds/tickets/{id}/items/{itemIndex}/status": {
+      "patch": {
+        "summary": "Advance Item Status (Multi-Station Routing & Expo)",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "itemIndex", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["kdsStatus"],
+                "properties": {
+                  "kdsStatus": { "type": "string", "enum": ["PENDING", "COOKING", "READY"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Item status updated. Auto-marks order READY if all items completed." }
+        }
+      }
+    },
+    "/api/v1/kds/tickets/{id}/undo": {
+      "post": {
+        "summary": "Undo Ticket Status (Safety Buffer)",
         "tags": ["KDS & Kitchen"],
         "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
-          "200": { "description": "Ticket status updated" }
+          "200": { "description": "Reverted accidental READY status back to PREPARING" }
+        }
+      }
+    },
+    "/api/v1/kds/tickets/{id}/print": {
+      "post": {
+        "summary": "Trigger Thermal KOT Order Slip Print",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stationTag": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "KOT slip generated and print job broadcast to local print agent" }
+        }
+      }
+    },
+    "/api/v1/kds/item-availability": {
+      "get": {
+        "summary": "View Menu Item Stock Availability",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "List of menu items with stock availability" }
+        }
+      }
+    },
+    "/api/v1/kds/item-availability/{id}": {
+      "patch": {
+        "summary": "Toggle Item Stock Availability (In-Stock / Out-of-Stock)",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["isAvailable"],
+                "properties": {
+                  "isAvailable": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Item stock updated and broadcast to all diner phones" }
+        }
+      }
+    },
+    "/api/v1/waiter/tables": {
+      "get": {
+        "summary": "Live Floor Map (Table Statuses)",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Color-coded table grid: Empty (Grey), Browsing (Purple), Cooking (Yellow), Ready (Green), Unpaid (Red)" }
+        }
+      }
+    },
+    "/api/v1/waiter/menu": {
+      "get": {
+        "summary": "Waiter Menu Catalog for Manual Punching",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Available menu items with modifiers and station tags" }
+        }
+      }
+    },
+    "/api/v1/waiter/orders": {
+      "post": {
+        "summary": "Punch Manual Table Order",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tableNumber", "items"],
+                "properties": {
+                  "tableNumber": { "type": "string", "example": "5" },
+                  "items": { "type": "array" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Order submitted and sent to kitchen KDS" }
+        }
+      }
+    },
+    "/api/v1/waiter/orders/{id}/serve": {
+      "patch": {
+        "summary": "Mark Food Items as Delivered to Table",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Food delivered. If unpaid, table turns red on floor map." }
+        }
+      }
+    },
+    "/api/v1/waiter/orders/{id}/void": {
+      "post": {
+        "summary": "PIN-Protected Void Engine",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["managerPin", "reason"],
+                "properties": {
+                  "managerPin": { "type": "string", "example": "1111" },
+                  "reason": { "type": "string", "example": "Customer ordered by mistake" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Order voided with manager authorization audit" },
+          "401": { "description": "Invalid 4-digit manager PIN" }
+        }
+      }
+    },
+    "/api/v1/waiter/pay-later": {
+      "get": {
+        "summary": "Pay Later Queue (Cash Collection)",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "List of active tables awaiting cash payment" }
+        }
+      }
+    },
+    "/api/v1/waiter/orders/{id}/collect-cash": {
+      "post": {
+        "summary": "Collect Cash Payment at Table",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amountReceived"],
+                "properties": {
+                  "amountReceived": { "type": "number", "example": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Payment collected, order settled, table cleared" }
+        }
+      }
+    },
+    "/api/v1/waiter/orders/{id}/print": {
+      "post": {
+        "summary": "Remote Bill Print Request to Admin Mini POS",
+        "tags": ["Waiter & Floor Staff"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tableNumber": { "type": "string", "example": "5" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Bill print job sent to Admin Mini POS hub" }
         }
       }
     },

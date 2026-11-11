@@ -5,6 +5,7 @@ import {
   PaymentStatus,
   PaymentMethod,
 } from './order.enum.js';
+import { BaseEventPayload } from '../../../shared/event-bus/index.js';
 
 export * from './order.enum.js';
 
@@ -59,6 +60,9 @@ export interface IOrder {
   stripePaymentIntentId?: string;
   timing: IOrderTiming;
   notes?: string;
+  serverStaffId?: string;
+  voidReason?: string;
+  voidApprovedBy?: string;
   version: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -90,3 +94,17 @@ export interface CallWaiterDTO {
   tableNumber: string;
   type?: 'WATER' | 'BILL' | 'ASSISTANCE';
 }
+
+export interface OrderEventPayload extends BaseEventPayload {
+  orderId: string;
+  orderNumber: string;
+  tableNumber?: string;
+  status: string;
+  data?: Record<string, unknown>;
+}
+
+export interface TableCallEventPayload extends BaseEventPayload {
+  tableNumber: string;
+  type: 'WATER' | 'BILL' | 'ASSISTANCE';
+}
+

@@ -78,6 +78,9 @@ const OrderSchema = new Schema<IOrderDocument>(
       completedAt: { type: Date },
     },
     notes: { type: String },
+    serverStaffId: { type: Schema.Types.ObjectId as any, ref: 'User' },
+    voidReason: { type: String },
+    voidApprovedBy: { type: Schema.Types.ObjectId as any, ref: 'User' },
     // Optimistic Concurrency Control
     version: { type: Number, required: true, default: 0 },
     deletedAt: { type: Date, default: null },
