@@ -25,9 +25,9 @@ export const errorHandler = (
   // Handle Known AppErrors
   if (err instanceof AppError) {
     if (err.statusCode >= 500) {
-      logger.error({ err }, 'Server operational error');
+      logger.error({ err }, `Server Error [${err.statusCode}]: ${err.message}`);
     } else {
-      logger.warn({ err }, 'Client operational error');
+      logger.warn(`Client Error [${err.statusCode}]: ${err.message}`);
     }
 
     res.status(err.statusCode).json({

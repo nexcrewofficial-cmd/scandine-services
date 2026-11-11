@@ -35,3 +35,8 @@ Thumbs.db
 .cache/
 .turbo/
 tmp/
+
+# Postman Collections (Generated locally)
+postman_collection.json
+*postman_collection*.json
+

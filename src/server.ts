@@ -42,13 +42,18 @@ app.get(['/health', '/api/v1/health'], (_req, res) => {
   });
 });
 
-// Swagger Interactive API Documentation
+// Swagger Interactive API Documentation & Raw OpenAPI Spec
 try {
   const openapiPath = path.join(__dirname, 'docs', 'openapi.json');
   if (fs.existsSync(openapiPath)) {
     const swaggerDoc = JSON.parse(fs.readFileSync(openapiPath, 'utf8'));
     app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+    app.get('/api/docs.json', (_req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(swaggerDoc);
+    });
     logger.info(`📖 Swagger Docs ready at http://localhost:${config.port}/api/docs`);
+    logger.info(`📄 OpenAPI Schema ready at http://localhost:${config.port}/api/docs.json`);
   }
 } catch (err) {
   logger.warn('OpenAPI documentation not mounted');

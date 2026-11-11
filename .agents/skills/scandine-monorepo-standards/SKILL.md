@@ -26,7 +26,8 @@ scan-and-dine-backend/
 │   │
 │   ├── shared/                                   # ── REUSABLE SHARED INFRASTRUCTURE ──
 │   │   ├── types/                                # Canonical TypeScript interfaces, enums, & DTOs
-│   │   ├── middlewares/                          # JWT auth, RBAC, Tenancy, Geofence, AppError, Zod validator
+│   │   ├── middlewares/                          # JWT auth, RBAC, Tenancy, Geofence, AppError, Zod validator, asyncHandler
+│   │   ├── utils/                                # Standardized responseUtils, successMessage constants
 │   │   ├── event-bus/                            # Redis Pub/Sub client with silent local in-memory fallback
 │   │   └── logger/                               # Pino JSON structured logging & HTTP request tracing
 │   │
@@ -38,6 +39,12 @@ scan-and-dine-backend/
 ├── package.json                                  # Single consolidated package.json
 └── tsconfig.json                                 # Single unified TypeScript configuration
 ```
+
+### Self-Contained Feature Folders Rule (No Redundant Module Barrel Files)
+* Every feature folder (e.g. `users/`, `customers/`, `shifts/`, `menu-items/`) is completely self-contained.
+* Domain types and enums live directly with the feature: `users/user.interface.ts`, `users/user.enum.ts`, `shifts/shift.interface.ts`.
+* Redundant module-level barrel files (such as `auth.enums.ts` and `auth.interfaces.ts`) are **strictly prohibited** to prevent circular dependency chains and maintenance overhead.
+
 
 ---
 
@@ -179,4 +186,13 @@ export class ExampleController {
 - `responseUtils.created(res, { data, message, status, meta })`
 - `responseUtils.error(res, { message, status, error })`
 - `successMessage` provides typed constants (`dataFetched`, `created`, `updated`, `deleted`, `loginSuccess`, etc.).
+
+---
+
+## 8. OpenAPI Documentation & Postman Auto-Sync
+
+1. **Raw OpenAPI JSON**: Exposed at `GET /api/docs.json` (and Swagger UI at `/api/docs`).
+2. **Postman Generator**: Run `npm run postman:gen` to automatically compile `src/docs/openapi.json` into `postman_collection.json`.
+3. **Postman Cloud Auto-Sync**: Define `POSTMAN_API_KEY` and `POSTMAN_COLLECTION_UID` in `.env` to push collection changes to the cloud automatically.
+
 

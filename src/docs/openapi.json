@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Scan & Dine API Contract",
-    "description": "Unified OpenAPI Specification for Scan & Dine SaaS Platform. Bridges TypeScript microservices with web frontends and Flutter mobile apps.",
+    "description": "Unified OpenAPI Specification for Scan & Dine SaaS Platform. Bridges TypeScript microservices with web frontends, Flutter mobile apps, and kitchen KDS.",
     "version": "1.0.0"
   },
   "servers": [
@@ -53,7 +53,7 @@
                 "required": ["email", "password"],
                 "properties": {
                   "email": { "type": "string", "example": "admin@pizzapalace.com" },
-                  "password": { "type": "string", "example": "AdminPass123!" }
+                  "password": { "type": "string", "example": "AdminPassword123!" }
                 }
               }
             }
@@ -77,8 +77,8 @@
                 "type": "object",
                 "required": ["venueId", "pinCode"],
                 "properties": {
-                  "venueId": { "type": "string" },
-                  "pinCode": { "type": "string", "example": "1234" }
+                  "venueId": { "type": "string", "example": "6af35497ae8e876a3604381d" },
+                  "pinCode": { "type": "string", "example": "2222" }
                 }
               }
             }
@@ -90,9 +90,42 @@
         }
       }
     },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Refresh Access Token",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "New access token" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Logout Staff / Admin",
+        "tags": ["Authentication"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Logged out successfully" }
+        }
+      }
+    },
     "/api/v1/public/auth/device": {
       "post": {
-        "summary": "Frictionless Guest Device Registration (Silent Login)",
+        "summary": "Frictionless Guest Device Registration",
         "tags": ["Customer Web"],
         "requestBody": {
           "required": true,
@@ -114,27 +147,298 @@
         }
       }
     },
+    "/api/v1/public/auth/favorites": {
+      "get": {
+        "summary": "Get Guest Favorites",
+        "tags": ["Customer Web"],
+        "security": [{ "DeviceUUIDHeader": [] }],
+        "responses": {
+          "200": { "description": "List of favorite item IDs" }
+        }
+      }
+    },
+    "/api/v1/admin/staff": {
+      "get": {
+        "summary": "List All Staff Members",
+        "tags": ["Staff Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "List of staff members" }
+        }
+      },
+      "post": {
+        "summary": "Onboard New Staff Member",
+        "tags": ["Staff Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "role", "pinCode"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string" },
+                  "role": { "type": "string", "enum": ["MANAGER", "WAITER", "KITCHEN"] },
+                  "pinCode": { "type": "string", "example": "5678" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Staff member onboarded" }
+        }
+      }
+    },
+    "/api/v1/admin/staff/{id}": {
+      "get": {
+        "summary": "Get Staff Member Details",
+        "tags": ["Staff Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Staff member data" }
+        }
+      },
+      "put": {
+        "summary": "Update Staff Member",
+        "tags": ["Staff Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "role": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Staff member updated" }
+        }
+      },
+      "delete": {
+        "summary": "Deactivate Staff Member",
+        "tags": ["Staff Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Staff member deactivated" }
+        }
+      }
+    },
+    "/api/v1/shifts/clock-in": {
+      "post": {
+        "summary": "Staff Clock In",
+        "tags": ["Staff Shifts"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Clocked in successfully" }
+        }
+      }
+    },
+    "/api/v1/shifts/clock-out": {
+      "post": {
+        "summary": "Staff Clock Out",
+        "tags": ["Staff Shifts"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Clocked out successfully" }
+        }
+      }
+    },
+    "/api/v1/shifts": {
+      "get": {
+        "summary": "List Shift Records",
+        "tags": ["Staff Shifts"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Shift logs" }
+        }
+      }
+    },
     "/api/v1/public/menu/{venueSlug}": {
       "get": {
         "summary": "Public Menu Catalog & Categories",
         "tags": ["Customer Web"],
-        "parameters": [
-          { "name": "venueSlug", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "parameters": [{ "name": "venueSlug", "in": "path", "required": true, "schema": { "type": "string", "example": "pizza-palace" } }],
         "responses": {
-          "200": { "description": "Venue info, categories, and available items" },
-          "404": { "description": "Venue not found" }
+          "200": { "description": "Venue info, categories, and available items" }
         }
       }
     },
-    "/api/v1/admin/menu/items/{id}/availability": {
+    "/api/v1/public/venue/{venueSlug}": {
+      "get": {
+        "summary": "Public Venue Profile",
+        "tags": ["Customer Web"],
+        "parameters": [{ "name": "venueSlug", "in": "path", "required": true, "schema": { "type": "string", "example": "pizza-palace" } }],
+        "responses": {
+          "200": { "description": "Venue details, branding, and ordering status" }
+        }
+      }
+    },
+    "/api/v1/venue/settings": {
+      "get": {
+        "summary": "Get Venue Settings",
+        "tags": ["Venue Admin"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Venue settings & configuration" }
+        }
+      },
+      "put": {
+        "summary": "Update Venue Settings",
+        "tags": ["Venue Admin"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "currency": { "type": "string" },
+                  "taxRate": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Venue settings updated" }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "summary": "List Menu Categories",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "List of categories" }
+        }
+      },
+      "post": {
+        "summary": "Create Category",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "displayOrder": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Category created" }
+        }
+      }
+    },
+    "/api/v1/categories/{id}": {
+      "put": {
+        "summary": "Update Category",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Category updated" }
+        }
+      },
+      "delete": {
+        "summary": "Delete Category",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Category deleted" }
+        }
+      }
+    },
+    "/api/v1/menu-items": {
+      "get": {
+        "summary": "List Menu Items",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "List of menu items" }
+        }
+      },
+      "post": {
+        "summary": "Create Menu Item",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "price", "categoryId"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "price": { "type": "number" },
+                  "categoryId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Menu item created" }
+        }
+      }
+    },
+    "/api/v1/menu-items/{id}": {
+      "get": {
+        "summary": "Get Menu Item Details",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Menu item details" }
+        }
+      },
+      "put": {
+        "summary": "Update Menu Item",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Menu item updated" }
+        }
+      },
+      "delete": {
+        "summary": "Delete Menu Item",
+        "tags": ["Menu Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Menu item deleted" }
+        }
+      }
+    },
+    "/api/v1/menu-items/{id}/stock": {
       "patch": {
-        "summary": "Instant 86-ing (Out-of-Stock Toggle)",
+        "summary": "86-ing Toggle (In-Stock / Out-of-Stock)",
         "tags": ["KDS & Kitchen"],
         "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
         "requestBody": {
           "required": true,
           "content": {
@@ -150,14 +454,157 @@
           }
         },
         "responses": {
-          "200": { "description": "Item stock updated and broadcasted via Redis/WebSockets" }
+          "200": { "description": "Stock status updated" }
         }
       }
     },
-    "/api/v1/public/checkout/cash": {
+    "/api/v1/inventory": {
+      "get": {
+        "summary": "List Inventory Items",
+        "tags": ["Inventory"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Inventory list" }
+        }
+      },
+      "post": {
+        "summary": "Add Inventory Item",
+        "tags": ["Inventory"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "201": { "description": "Inventory item created" }
+        }
+      }
+    },
+    "/api/v1/inventory/{id}": {
+      "get": {
+        "summary": "Get Inventory Item",
+        "tags": ["Inventory"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Inventory details" }
+        }
+      },
+      "put": {
+        "summary": "Update Inventory Item",
+        "tags": ["Inventory"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Inventory updated" }
+        }
+      },
+      "delete": {
+        "summary": "Delete Inventory Item",
+        "tags": ["Inventory"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Inventory deleted" }
+        }
+      }
+    },
+    "/api/v1/promos": {
+      "get": {
+        "summary": "List Promos",
+        "tags": ["Promotions"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Promo codes list" }
+        }
+      },
+      "post": {
+        "summary": "Create Promo Code",
+        "tags": ["Promotions"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "201": { "description": "Promo code created" }
+        }
+      }
+    },
+    "/api/v1/promos/validate": {
+      "post": {
+        "summary": "Validate and Calculate Discount",
+        "tags": ["Promotions"],
+        "security": [{ "VenueIdHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "orderTotal"],
+                "properties": {
+                  "code": { "type": "string", "example": "SAVE10" },
+                  "orderTotal": { "type": "number", "example": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Validation result and discount amount" }
+        }
+      }
+    },
+    "/api/v1/cart": {
+      "get": {
+        "summary": "Get Active Guest Cart",
+        "tags": ["Cart & Ordering"],
+        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
+        "responses": {
+          "200": { "description": "Cart items and subtotal" }
+        }
+      },
+      "delete": {
+        "summary": "Clear Guest Cart",
+        "tags": ["Cart & Ordering"],
+        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
+        "responses": {
+          "200": { "description": "Cart cleared" }
+        }
+      }
+    },
+    "/api/v1/cart/items": {
+      "post": {
+        "summary": "Add Item to Cart",
+        "tags": ["Cart & Ordering"],
+        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tableNumber", "item"],
+                "properties": {
+                  "tableNumber": { "type": "string" },
+                  "item": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Cart updated" }
+        }
+      }
+    },
+    "/api/v1/checkout/stripe": {
+      "post": {
+        "summary": "Initiate Stripe Card Checkout",
+        "tags": ["Cart & Ordering"],
+        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
+        "responses": {
+          "200": { "description": "Stripe clientSecret and draft orderId" }
+        }
+      }
+    },
+    "/api/v1/checkout/cash": {
       "post": {
         "summary": "Submit Order as Pay-Later / Cash at Counter",
-        "tags": ["Orders & Checkout"],
+        "tags": ["Cart & Ordering"],
         "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
         "requestBody": {
           "required": true,
@@ -173,37 +620,68 @@
           }
         },
         "responses": {
-          "201": { "description": "Order submitted and pushed to KDS tickets" }
+          "201": { "description": "Order submitted to kitchen" }
         }
       }
     },
-    "/api/v1/public/checkout/initiate": {
-      "post": {
-        "summary": "Initiate Stripe Card Checkout",
-        "tags": ["Orders & Checkout"],
-        "security": [{ "VenueIdHeader": [], "DeviceUUIDHeader": [] }],
-        "responses": {
-          "200": { "description": "Stripe clientSecret and draft orderId" }
-        }
-      }
-    },
-    "/api/v1/kds/tickets": {
+    "/api/v1/orders": {
       "get": {
-        "summary": "Fetch Active Kitchen Kanban Tickets with SLA Timers",
-        "tags": ["KDS & Kitchen"],
+        "summary": "List Venue Orders",
+        "tags": ["Orders"],
         "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [
-          { "name": "stationTag", "in": "query", "schema": { "type": "string", "enum": ["GRILL", "BAR", "DESSERT", "MAIN_KITCHEN"] } }
-        ],
         "responses": {
-          "200": { "description": "List of active tickets with SLA timer colors (GREEN/YELLOW/FLASHING_RED)" }
+          "200": { "description": "List of orders" }
+        }
+      },
+      "post": {
+        "summary": "Create Order Directly",
+        "tags": ["Orders"],
+        "security": [{ "VenueIdHeader": [] }],
+        "responses": {
+          "201": { "description": "Order created" }
         }
       }
     },
-    "/api/v1/public/orders/call-waiter": {
+    "/api/v1/orders/{id}": {
+      "get": {
+        "summary": "Get Order By ID",
+        "tags": ["Orders"],
+        "security": [{ "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Order details" }
+        }
+      }
+    },
+    "/api/v1/orders/{id}/status": {
+      "patch": {
+        "summary": "Update Order Status",
+        "tags": ["Orders"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Order status updated" }
+        }
+      }
+    },
+    "/api/v1/orders/call-waiter": {
       "post": {
         "summary": "Call Waiter Alert from Table",
-        "tags": ["Customer Web"],
+        "tags": ["Orders"],
         "security": [{ "VenueIdHeader": [] }],
         "requestBody": {
           "required": true,
@@ -225,13 +703,67 @@
         }
       }
     },
-    "/api/v1/admin/dashboard": {
+    "/api/v1/kds/tickets": {
+      "get": {
+        "summary": "Fetch Active Kitchen Kanban Tickets",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [
+          { "name": "stationTag", "in": "query", "schema": { "type": "string", "enum": ["GRILL", "BAR", "DESSERT", "MAIN_KITCHEN"] } }
+        ],
+        "responses": {
+          "200": { "description": "List of active tickets" }
+        }
+      }
+    },
+    "/api/v1/kds/tickets/{id}/status": {
+      "patch": {
+        "summary": "Advance KDS Ticket Status",
+        "tags": ["KDS & Kitchen"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Ticket status updated" }
+        }
+      }
+    },
+    "/api/v1/transactions": {
+      "get": {
+        "summary": "List Financial Transactions Ledger",
+        "tags": ["Finance & Transactions"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": {
+          "200": { "description": "Transaction logs" }
+        }
+      }
+    },
+    "/api/v1/transactions/{id}/refund": {
+      "post": {
+        "summary": "Process Transaction Refund",
+        "tags": ["Finance & Transactions"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Refund processed" }
+        }
+      }
+    },
+    "/api/v1/dashboard/overview": {
       "get": {
         "summary": "Venue Admin Real-Time Metrics & Daily GMV",
         "tags": ["Venue Admin"],
         "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
         "responses": {
           "200": { "description": "Daily revenue, average ticket, active table counts" }
+        }
+      }
+    },
+    "/api/v1/webhooks/stripe": {
+      "post": {
+        "summary": "Stripe Webhook Listener",
+        "tags": ["Webhooks"],
+        "responses": {
+          "200": { "description": "Webhook received" }
         }
       }
     }
