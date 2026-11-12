@@ -8,9 +8,16 @@ module.exports = {
       watch: false,
       max_memory_restart: "1G",
       env: {
+        NODE_ENV: "development",
+        PORT: 8080,
+        SERVICE_NAME: "ALL",
+        LOG_LEVEL: "debug",
+      },
+      env_production: {
         NODE_ENV: "production",
         PORT: 8080,
         SERVICE_NAME: "ALL",
+        LOG_LEVEL: "info",
       },
     },
   ],
