@@ -42,17 +42,29 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME || 'root' }}
+          username: ${{ secrets.VPS_USERNAME || 'moosadevv' }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script_stop: true
           script: |
             echo "🚀 Starting automated deployment on Hostinger VPS..."
 
-            # 1. Create app directory if not exists
-            sudo mkdir -p /var/www/scan-and-dine
-            sudo chown -R $USER:$USER /var/www/scan-and-dine
-            cd /var/www/scan-and-dine
+            # Ensure PATH finds node, npm, and npx
+            export PATH=$PATH:/usr/local/bin:/usr/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.npm-global/bin
+
+            # 1. Determine app directory (user home directory to avoid sudo password prompts)
+            APP_DIR="${{ vars.APP_DIR || '' }}"
+            if [ -z "$APP_DIR" ]; then
+              if [ "$USER" = "root" ]; then
+                APP_DIR="/var/www/scan-and-dine"
+              else
+                APP_DIR="$HOME/scan-and-dine"
+              fi
+            fi
+
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+            echo "📂 Working directory: $(pwd)"
 
             # 2. Check if git repo is initialized, if not clone it
             if [ ! -d ".git" ]; then
@@ -70,7 +82,7 @@ jobs:
             echo "🔐 Writing production .env from GitHub Secrets..."
             cat << 'EOF' > .env
             NODE_ENV=production
-            PORT=${{ vars.PORT || '3000' }}
+            PORT=${{ vars.PORT || '8080' }}
             SERVICE_NAME=ALL
             MONGO_URI=${{ secrets.MONGO_URI || 'mongodb://127.0.0.1:27017/scan-and-dine' }}
             MONGO_MAX_POOL_SIZE=${{ vars.MONGO_MAX_POOL_SIZE || '20' }}
@@ -85,9 +97,9 @@ jobs:
             LOG_LEVEL=${{ vars.LOG_LEVEL || 'info' }}
             EOF
 
-            # 4. Install production dependencies
+            # 4. Install dependencies (including devDependencies required for tsc build)
             echo "📥 Installing dependencies..."
-            npm install --omit=dev
+            npm install
 
             # 5. Build TypeScript production artifacts
             echo "🔨 Compiling TypeScript..."
@@ -98,8 +110,8 @@ jobs:
             npm run seed || echo "Seed already present or skipped"
 
             # 7. Start or Reload PM2 with Zero Downtime
-            echo "⚡ Reloading PM2 process..."
-            pm2 startOrReload ecosystem.config.cjs --update-env
-            pm2 save
+            echo "⚡ Reloading PM2 process on PORT 8080..."
+            npx pm2 startOrReload ecosystem.config.cjs --update-env || pm2 startOrReload ecosystem.config.cjs --update-env
+            npx pm2 save || pm2 save
 
-            echo "✅ Deployment completed successfully! Backend is online."
+            echo "✅ Deployment completed successfully! Backend is online on PORT 8080."

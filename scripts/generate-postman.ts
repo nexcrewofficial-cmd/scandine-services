@@ -116,7 +116,7 @@ Converter.convert(
 
     // Enhance collection with standard variables for Scan & Dine
     collection.variable = [
-      { key: 'baseUrl', value: 'http://localhost:3000', type: 'string' },
+      { key: 'baseUrl', value: 'http://localhost:8080', type: 'string' },
       { key: 'bearerToken', value: '', type: 'string' },
       { key: 'adminToken', value: '', type: 'string' },
       { key: 'staffToken', value: '', type: 'string' },

@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
-  port: Number(process.env.PORT) || 3000,
+  port: Number(process.env.PORT) || 8080,
   nodeEnv: process.env.NODE_ENV || 'development',
   serviceName: process.env.SERVICE_NAME || 'ALL', // 'ALL' (unified) or 'AUTH', 'MENU', 'ORDERS', 'WS'
 
@@ -43,7 +43,7 @@ export const config = {
     process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:4000',
     process.env.NEXT_PUBLIC_WAITER_URL || 'http://localhost:4001',
     process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:4002',
-    'http://localhost:3000',
+    "http://localhost:8080",
   ],
 
   logLevel: process.env.LOG_LEVEL || 'info',
