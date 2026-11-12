@@ -1,22 +1,9 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { UserModel, IUserDocument } from '../users/user.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { config } from '../../../config/env.js';
-import { AdminLoginDTO, StaffPinLoginDTO } from '@scan-and-dine/shared-types';
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
-    venueId?: string;
-  };
-}
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { UserModel, IUserDocument } from "../users/user.model.js";
+import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
+import { config } from "../../../config/env.js";
+import { AdminLoginDTO, StaffPinLoginDTO, AuthTokens } from "./auth.interface.js";
 
 export class AuthService {
   private static generateTokens(user: IUserDocument): { accessToken: string; refreshToken: string } {
@@ -45,30 +32,30 @@ export class AuthService {
     });
 
     if (!user) {
-      throw AppError.unauthorized('Invalid email or password');
+      throw AppError.unauthorized(errorMessage.invalidCredentials);
     }
 
     if (!user.isActive) {
-      throw AppError.forbidden('Your account is deactivated. Contact venue administrator.');
+      throw AppError.forbidden("Your account is deactivated. Contact venue administrator.");
     }
 
     // Check account lockout
     if (user.accountLockedUntil && user.accountLockedUntil > new Date()) {
-      throw AppError.forbidden('Account temporarily locked due to multiple failed login attempts.');
+      throw AppError.forbidden("Account temporarily locked due to multiple failed login attempts.");
     }
 
     if (!user.passwordHash) {
-      throw AppError.unauthorized('Password not configured for this account');
+      throw AppError.unauthorized("Password not configured for this account");
     }
 
-    const isMatch = await bcrypt.compare(dto.password || '', user.passwordHash);
+    const isMatch = await bcrypt.compare(dto.password || "", user.passwordHash);
     if (!isMatch) {
       user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
       if (user.failedLoginAttempts >= 5) {
         user.accountLockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 min lock
       }
       await user.save();
-      throw AppError.unauthorized('Invalid email or password');
+      throw AppError.unauthorized(errorMessage.invalidCredentials);
     }
 
     // Reset failed login attempts
@@ -112,7 +99,7 @@ export class AuthService {
     }
 
     if (!matchedStaff) {
-      throw AppError.unauthorized('Invalid 4-digit PIN code');
+      throw AppError.unauthorized(errorMessage.invalidPin);
     }
 
     matchedStaff.lastLoginAt = new Date();
@@ -139,7 +126,7 @@ export class AuthService {
       const user = await UserModel.findById(decoded.userId);
 
       if (!user || !user.isActive) {
-        throw AppError.unauthorized('User not found or inactive');
+        throw AppError.unauthorized(errorMessage.notFound("User"));
       }
 
       const payload = {
@@ -155,7 +142,7 @@ export class AuthService {
 
       return { accessToken };
     } catch {
-      throw AppError.unauthorized('Invalid or expired refresh token');
+      throw AppError.unauthorized(errorMessage.tokenExpired);
     }
   }
 }

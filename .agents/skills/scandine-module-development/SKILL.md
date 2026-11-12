@@ -122,14 +122,14 @@ export const createTableSchema = z.object({
 Create `<feature>.service.ts` with all business logic and event bus emission:
 ```typescript
 import { TableModel, ITableDocument } from "./table.model.js";
-import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
+import { generateAPIError, errorMessage } from "../../../shared/middlewares/index.js";
 import { publishEvent, EventChannels } from "../../../shared/event-bus/index.js";
 
 export class TableService {
   static async createTable(venueId: string, data: any): Promise<ITableDocument> {
     const existing = await TableModel.findOne({ venueId, tableNumber: data.tableNumber, deletedAt: null });
     if (existing) {
-      throw AppError.badRequest(errorMessage.alreadyExists("Table number"));
+      return await generateAPIError(errorMessage.alreadyExists("Table number"), 400);
     }
 
     const table = await TableModel.create({ ...data, venueId });
@@ -193,7 +193,7 @@ export const tableRouter = router;
 1. **Controllers Never Query MongoDB Directly**: Controllers only unpack requests, invoke services, and serialize JSON responses.
 2. **Never Call External Webhooks from Services Synchronously**: Always decouple notifications and thermal printing via `publishEvent(EventChannels.*)`.
 3. **Always Scope by `venueId`**: Never execute queries without `{ venueId }` unless performing an authorized Super Admin global query.
-4. **Use Centralized Message Constants**: Always use `errorMessage.notFound(...)`, `errorMessage.alreadyExists(...)`, and `successMessage.created(...)`.
+4. **Error Generation & Message Constants**: Always trigger operational errors using `return await generateAPIError(errorMessage.<key>, statusCode)`. Never throw raw untyped Error objects or hardcode static strings.
 
 ---
 
@@ -201,7 +201,7 @@ export const tableRouter = router;
 
 - ❌ Creating `index.ts` files inside feature subfolders that cause circular dependency deadlocks.
 - ❌ Using single quotes (`'`) anywhere in TypeScript code.
-- ❌ Hardcoding string error messages like `throw new Error("Table not found")`.
+- ❌ Hardcoding string error messages like `throw new Error("Table not found")` instead of `return await generateAPIError(errorMessage.notFound("Table"), 404)`.
 - ❌ Prefixing sub-routes with `/api/v1` in `*.route.ts` files.
 - ❌ Forgetting the `.js` extension when importing local files in ESM mode.
 

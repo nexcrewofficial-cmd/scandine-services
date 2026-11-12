@@ -59,6 +59,11 @@
      - `successMessage.fetched("Floor map")` ➔ `"Floor map fetched successfully"`
 5. **No Restaurant Slang**:
    - Never use the slang `"86"`. Always use clean terms like `item-availability`, `toggleItemAvailability`, `ITEM_OUT_OF_STOCK`.
+6. **Error Generation Standard (`generateAPIError` & `APIError`)**:
+   - Always trigger operational API errors using:
+     `return await generateAPIError(errorMessage.<key>, statusCode, errorCode?, data?);`
+   - Logs diagnostics via `console.log(msg, statusCode, "error")` and throws structured `APIError`.
+   - Never throw raw untyped JavaScript `Error` objects.
 
 ---
 

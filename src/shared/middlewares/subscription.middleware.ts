@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { SubscriptionStatus, UserRole } from '@scan-and-dine/shared-types';
-import { AppError } from './app-error.js';
+import { Request, Response, NextFunction } from "express";
+import { SubscriptionStatus, UserRole } from "@scan-and-dine/shared-types";
+import { AppError, errorMessage } from "../constants/messages.constant.js";
 
 export const requireActiveSubscription = (
   req: Request,
@@ -17,17 +17,13 @@ export const requireActiveSubscription = (
   // If status is present in token, check it
   if (status === SubscriptionStatus.PAST_DUE) {
     return next(
-      AppError.paymentRequired(
-        'Subscription payment is past due. Please update your billing information.'
-      )
+      AppError.paymentRequired(errorMessage.subscriptionPastDue)
     );
   }
 
   if (status === SubscriptionStatus.CANCELLED) {
     return next(
-      AppError.paymentRequired(
-        'Subscription is cancelled. Please resubscribe to continue using the platform.'
-      )
+      AppError.paymentRequired(errorMessage.subscriptionCancelled)
     );
   }
 

@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from './app-error.js';
+import { Request, Response, NextFunction } from "express";
+import { AppError, errorMessage } from "../constants/messages.constant.js";
 
 /**
  * Calculates great-circle distance between two GPS coordinates using the Haversine formula
@@ -30,19 +30,21 @@ export interface GeofenceOptions {
   radiusMeters?: number; // Default: 200m
 }
 
-export const validateGeofence = (options: GeofenceOptions) => {
+export const requireGeofence = (options: GeofenceOptions) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
-    // Extract user GPS from headers or request body
-    const userLat = Number(req.headers['x-user-latitude'] || req.body?.latitude);
-    const userLon = Number(req.headers['x-user-longitude'] || req.body?.longitude);
+    const latHeader = req.headers["x-user-latitude"];
+    const lonHeader = req.headers["x-user-longitude"];
 
-    if (isNaN(userLat) || isNaN(userLon)) {
+    const userLat = latHeader ? parseFloat(latHeader as string) : null;
+    const userLon = lonHeader ? parseFloat(lonHeader as string) : null;
+
+    if (userLat === null || userLon === null || isNaN(userLat) || isNaN(userLon)) {
       // In development or if device GPS is pending, allow graceful fallback
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== "production") {
         return next();
       }
       return next(
-        AppError.badRequest('Location verification required: Please allow GPS location to place order on-premises.')
+        AppError.badRequest(errorMessage.isRequired("GPS Location (x-user-latitude / x-user-longitude)"))
       );
     }
 
@@ -53,9 +55,7 @@ export const validateGeofence = (options: GeofenceOptions) => {
 
     if (distance > allowedRadius) {
       return next(
-        AppError.forbidden(
-          `Location verification failed: You are ${distance}m away from the venue (Max allowed: ${allowedRadius}m). Orders can only be placed on-premises.`
-        )
+        AppError.forbidden(errorMessage.outsideGeofence)
       );
     }
 

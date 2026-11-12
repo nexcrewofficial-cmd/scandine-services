@@ -50,7 +50,7 @@ This skill instructs agents on:
    UserModel.find({ venueId }).select("-passwordHash -pinCodeHash -twoFactorSecret");
    ```
 3. **Always Hash PINs**: Staff 4-digit PINs must always be hashed using `bcrypt.hash(pin, 10)` before persistence.
-4. **Use Centralized Security Messages**: Always throw `AppError` with messages from `src/shared/constants/messages.constant.ts` (`errorMessage.unauthorized`, `errorMessage.forbidden`, `errorMessage.invalidPin`, `errorMessage.sessionExpired`).
+4. **Use Centralized Security Messages**: Always trigger operational errors using `return await generateAPIError(errorMessage.<key>, statusCode)` (`errorMessage.unauthorized`, `errorMessage.forbidden`, `errorMessage.invalidPin`, `errorMessage.sessionExpired`).
 
 ---
 
@@ -125,7 +125,7 @@ for (const staff of staffMembers) {
 }
 
 if (!matchedStaff) {
-  throw AppError.unauthorized(errorMessage.invalidPin);
+  return await generateAPIError(errorMessage.invalidPin, 401);
 }
 ```
 
@@ -148,7 +148,7 @@ for (const mgr of managers) {
 }
 
 if (!authorizedManager) {
-  throw AppError.unauthorized(errorMessage.invalidPin);
+  return await generateAPIError(errorMessage.invalidPin, 401);
 }
 
 order.status = OrderStatus.CANCELLED;
@@ -168,7 +168,7 @@ const distance = calculateDistanceInMeters(
 );
 
 if (distance > venue.settings.geofenceRadiusMeters) {
-  throw AppError.forbidden(errorMessage.outsideGeofence);
+  return await generateAPIError(errorMessage.outsideGeofence, 403);
 }
 ```
 

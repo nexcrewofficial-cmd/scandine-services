@@ -273,6 +273,23 @@ All user-facing messages are maintained in `src/shared/constants/messages.consta
   }
   ```
 
+### C. Operational Error Generation (`generateAPIError` & `APIError`)
+Business services throw operational errors via the `generateAPIError` helper function:
+```typescript
+import { generateAPIError, errorMessage } from "../../../shared/middlewares/index.js";
+
+// Generates and throws APIError with message and HTTP status
+return await generateAPIError(errorMessage.storeNotAvailable, 400);
+
+// Dynamic not found error
+return await generateAPIError(errorMessage.notFound("Order"), 404);
+```
+`APIError` structures:
+- `statusCode`: HTTP numeric status code.
+- `success`: false.
+- `errorCode`: Optional domain error string.
+- `data`: Optional typed payload.
+
 ---
 
 ## 9. External Integrations

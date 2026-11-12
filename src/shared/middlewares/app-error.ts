@@ -1,41 +1,31 @@
-export class AppError extends Error {
-  public readonly statusCode: number;
-  public readonly isOperational: boolean;
-  public readonly details?: unknown;
+/**
+ * Represents an API error that can be handled.
+ * @param {string} message - corresponding error message.
+ * @param {number} statusCode - corresponding http status code.
+ */
+export class APIError<T = unknown> extends Error {
+  statusCode: number;
+  success: boolean;
+  errorCode?: string;
+  data?: T;
 
-  constructor(message: string, statusCode = 500, details?: unknown) {
+  constructor(message: string, statusCode: number, errorCode?: string, data?: T) {
     super(message);
     this.statusCode = statusCode;
-    this.isOperational = true;
-    this.details = details;
+    this.success = false;
+    this.errorCode = errorCode;
+    this.data = data;
     Error.captureStackTrace(this, this.constructor);
   }
-
-  static badRequest(message = 'Bad Request', details?: unknown) {
-    return new AppError(message, 400, details);
-  }
-
-  static unauthorized(message = 'Unauthorized') {
-    return new AppError(message, 401);
-  }
-
-  static paymentRequired(message = 'Payment Required') {
-    return new AppError(message, 402);
-  }
-
-  static forbidden(message = 'Forbidden') {
-    return new AppError(message, 403);
-  }
-
-  static notFound(message = 'Not Found') {
-    return new AppError(message, 404);
-  }
-
-  static conflict(message = 'Conflict', details?: unknown) {
-    return new AppError(message, 409, details);
-  }
-
-  static internal(message = 'Internal Server Error') {
-    return new AppError(message, 500);
-  }
 }
+
+/** Generates a custom api error with given message and status code. */
+export const generateAPIError = async <T = unknown>(
+  msg: string,
+  statusCode: number = 400,
+  errorCode?: string,
+  data?: T
+): Promise<never> => {
+  console.log(msg, statusCode, "error");
+  throw new APIError(msg, statusCode, errorCode, data);
+};

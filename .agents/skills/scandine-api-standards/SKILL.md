@@ -168,7 +168,55 @@ successMessage.deleted("Promo code")  // "Promo code deleted successfully"
 
 ---
 
-## 7. OpenAPI Documentation & Postman Auto-Sync Workflow
+## 7. API Error Generation Pattern (`generateAPIError` & `APIError`)
+
+All services and controllers trigger operational errors using the `generateAPIError` helper function:
+
+```typescript
+import { generateAPIError, errorMessage } from "../../../shared/middlewares/index.js";
+
+// Basic error with status code
+return await generateAPIError(errorMessage.storeNotAvailable, 400);
+
+// Dynamic not found error
+return await generateAPIError(errorMessage.notFound("Order"), 404);
+
+// Error with custom errorCode and data payload
+return await generateAPIError(
+  errorMessage.invalid("Modifier selection"),
+  422,
+  "INVALID_MODIFIER",
+  { menuItemId, missingGroup: "Sauce" }
+);
+```
+
+### Structure of `APIError`
+```typescript
+class APIError<T = unknown> extends Error {
+  statusCode: number;
+  success: boolean;
+  errorCode?: string;
+  data?: T;
+}
+```
+
+When thrown:
+1. `generateAPIError` logs diagnostics via `console.log(msg, statusCode, "error")`.
+2. The error bubbles to the controller's `errorWrapper`.
+3. Express forwards to `errorHandler`, which formats the standardized JSON response:
+```json
+{
+  "success": false,
+  "message": "Store is currently not available or closed",
+  "error": "Store is currently not available or closed",
+  "errorCode": "STORE_UNAVAILABLE",
+  "data": { ... }
+}
+```
+
+---
+
+## 8. OpenAPI Documentation & Postman Auto-Sync Workflow
 
 Whenever you introduce or modify API routes:
 1. **Update `src/docs/openapi.json`**:

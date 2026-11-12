@@ -70,7 +70,7 @@ Open for extension, closed for modification:
 ### L — Liskov Substitution Principle (LSP)
 Subtypes must be substitutable for their base types without altering correctness:
 * **Event Bus Handlers**: Event subscribers implement the generic `EventHandler<T>` contract. Any handler can process events without breaking the pub/sub pipeline.
-* **Error Hierarchy**: All custom operational errors inherit from `AppError`. The global `errorHandler` processes any `AppError` subclass uniformly.
+* **Error Hierarchy**: All custom operational errors inherit from `APIError`. The global `errorHandler` processes any `APIError` subclass uniformly.
 
 ### I — Interface Segregation Principle (ISP)
 Clients should not be forced to depend on methods or fields they do not use:
@@ -232,16 +232,17 @@ All controller handlers return standardized responses using `responseUtils.succe
   successMessage.deleted("Promo code")  // "Promo code deleted successfully"
   ```
 * **Single Source of Truth**: All messages and builders reside in `src/shared/constants/messages.constant.ts` (re-exported via `src/shared/middlewares/index.js` and `src/shared/utils/index.js`).
-* **Usage in Services**:
+* **Universal Application (Zero Exceptions)**: Even central handlers like `errorHandler` and middleware pipeline guards must NEVER hardcode strings like `"Validation Error"` or `"Internal Server Error"`. They must reference `errorMessage.validationFailed` and `errorMessage.internalServerError`.
+* **Usage in Services (`generateAPIError`)**:
   ```typescript
-  import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
+  import { generateAPIError, errorMessage } from "../../../shared/middlewares/index.js";
 
   if (!order) {
-    throw new AppError(errorMessage.notFound("Order"), 404);
+    return await generateAPIError(errorMessage.notFound("Order"), 404);
   }
 
   if (cart.items.length === 0) {
-    throw new AppError(errorMessage.cartEmpty, 400);
+    return await generateAPIError(errorMessage.cartEmpty, 400);
   }
   ```
 * **Usage in Controllers**:

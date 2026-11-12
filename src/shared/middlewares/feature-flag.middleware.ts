@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { IFeatureFlags } from '@scan-and-dine/shared-types';
-import { AppError } from './app-error.js';
+import { Request, Response, NextFunction } from "express";
+import { IFeatureFlags } from "@scan-and-dine/shared-types";
+import { AppError, errorMessage } from "../constants/messages.constant.js";
 
 export const requireFeatureFlag = (flagName: keyof IFeatureFlags) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -9,9 +9,7 @@ export const requireFeatureFlag = (flagName: keyof IFeatureFlags) => {
 
     if (venueFlags && !venueFlags[flagName]) {
       return next(
-        AppError.forbidden(
-          `Module locked: Feature '${String(flagName)}' is not enabled on this venue subscription plan.`
-        )
+        AppError.forbidden(errorMessage.featureLocked(String(flagName)))
       );
     }
 

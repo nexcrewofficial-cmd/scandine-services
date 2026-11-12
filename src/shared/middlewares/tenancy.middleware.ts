@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from './app-error.js';
-import { UserRole } from '@scan-and-dine/shared-types';
+import { Request, Response, NextFunction } from "express";
+import { AppError, errorMessage } from "../constants/messages.constant.js";
+import { UserRole } from "@scan-and-dine/shared-types";
 
 export const requireVenueId = (
   req: Request,
@@ -17,11 +17,11 @@ export const requireVenueId = (
     req.user?.venueId ||
     (req.params.venueId as string) ||
     (req.query.venueId as string) ||
-    (req.headers['x-venue-id'] as string);
+    (req.headers["x-venue-id"] as string);
 
   if (!venueId) {
     return next(
-      AppError.badRequest('Tenant identification required: Missing venueId in request context')
+      AppError.badRequest(errorMessage.isRequired("Venue ID in request context"))
     );
   }
 
@@ -34,11 +34,11 @@ export const requireCustomerDevice = (
   _res: Response,
   next: NextFunction
 ): void => {
-  const deviceUUID = (req.headers['x-device-uuid'] as string) || (req.body?.customerUUID as string);
+  const deviceUUID = (req.headers["x-device-uuid"] as string) || (req.body?.customerUUID as string);
 
   if (!deviceUUID) {
     return next(
-      AppError.badRequest('Customer identification required: Missing x-device-uuid header')
+      AppError.badRequest(errorMessage.isRequired("Device identification (x-device-uuid)"))
     );
   }
 

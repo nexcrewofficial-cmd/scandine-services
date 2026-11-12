@@ -1,3 +1,5 @@
+import { APIError } from "../middlewares/app-error.js";
+
 /**
  * Centralized Application Messages & Reusable Message Builders
  *
@@ -17,6 +19,7 @@ export const errorMessage = {
   alreadyCancelled: (field: string = "Order"): string => `This ${field.toLowerCase()} has already been cancelled`,
   alreadyVoided: (field: string = "Order"): string => `This ${field.toLowerCase()} has already been voided`,
   accessDenied: (field: string = "Resource"): string => `You do not have access to this ${field.toLowerCase()}`,
+  featureLocked: (feature: string = "Feature"): string => `Module locked: Feature '${feature}' is not enabled on this venue subscription plan.`,
 
   // ── STATIC GENERIC & SECURITY ERRORS ──
   internalServerError: "An unexpected internal server error occurred",
@@ -30,6 +33,9 @@ export const errorMessage = {
   cartEmpty: "Your cart is empty. Please add items before checking out",
   cartSessionNotFound: "Active cart session not found",
   paymentFailed: "Payment processing failed. Please try again",
+  storeNotAvailable: "Store is currently not available or closed",
+  subscriptionPastDue: "Subscription payment is past due. Please update your billing information.",
+  subscriptionCancelled: "Subscription is cancelled. Please resubscribe to continue using the platform.",
   tableOccupied: "Table is currently occupied",
   outsideGeofence: "You must be physically present at the venue to place an order",
   validationFailed: "Input validation failed",
@@ -78,3 +84,43 @@ export const successMessage = {
   kdsItemStatusUpdated: "Kitchen station item status updated",
   kotPrinted: "Kitchen order ticket printed successfully",
 } as const;
+
+/**
+ * AppError backward-compatible subclass of APIError
+ */
+export class AppError extends APIError {
+  public readonly isOperational = true;
+
+  constructor(message: string, statusCode = 500, details?: unknown) {
+    super(message, statusCode, undefined, details);
+  }
+
+  static badRequest(message = "Bad Request", details?: unknown) {
+    return new AppError(message, 400, details);
+  }
+
+  static unauthorized(message = "Unauthorized") {
+    return new AppError(message, 401);
+  }
+
+  static paymentRequired(message = "Payment Required") {
+    return new AppError(message, 402);
+  }
+
+  static forbidden(message = "Forbidden") {
+    return new AppError(message, 403);
+  }
+
+  static notFound(message = "Not Found") {
+    return new AppError(message, 404);
+  }
+
+  static conflict(message = "Conflict", details?: unknown) {
+    return new AppError(message, 409, details);
+  }
+
+  static internal(message = "Internal Server Error") {
+    return new AppError(message, 500);
+  }
+}
+
