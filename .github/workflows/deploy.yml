@@ -1,41 +1,105 @@
-name: Scan & Dine Backend CI/CD
+name: Scan & Dine Backend CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
-  build-and-test:
+  # =========================================================================
+  # 1. TEST & BUILD CHECK (Runs on GitHub Cloud)
+  # =========================================================================
+  build-and-verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20.x
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: 20
+          cache: "npm"
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Backend Services
+      - name: Verify TypeScript Compilation
         run: npm run build
         env:
           NODE_ENV: production
 
-  deploy:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  # =========================================================================
+  # 2. AUTOMATIC ZERO-INTERACTION DEPLOY TO HOSTINGER VPS
+  # =========================================================================
+  deploy-to-vps:
+    needs: build-and-verify
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: SSH into Hostinger VPS and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            echo "🚀 Starting automated deployment on Hostinger VPS..."
 
-      - name: Deploy to Hostinger VPS
-        run: |
-          echo "Deploying to Hostinger VPS via SSH..."
-          # Deploy steps: rsync dist files and trigger pm2 reload
+            # 1. Create app directory if not exists
+            sudo mkdir -p /var/www/scan-and-dine
+            sudo chown -R $USER:$USER /var/www/scan-and-dine
+            cd /var/www/scan-and-dine
+
+            # 2. Check if git repo is initialized, if not clone it
+            if [ ! -d ".git" ]; then
+              echo "📦 First time setup: Cloning repository branch ${{ github.ref_name }}..."
+              git clone -b ${{ github.ref_name }} https://github.com/${{ github.repository }}.git .
+            else
+              echo "🔄 Pulling latest changes from ${{ github.ref_name }}..."
+              git fetch origin
+              git checkout ${{ github.ref_name }}
+              git reset --hard origin/${{ github.ref_name }}
+              git pull origin ${{ github.ref_name }}
+            fi
+
+            # 3. Automatically inject .env from GitHub Secrets & Variables
+            echo "🔐 Writing production .env from GitHub Secrets..."
+            cat << 'EOF' > .env
+            NODE_ENV=production
+            PORT=${{ vars.PORT || '3000' }}
+            SERVICE_NAME=ALL
+            MONGO_URI=${{ secrets.MONGO_URI || 'mongodb://127.0.0.1:27017/scan-and-dine' }}
+            MONGO_MAX_POOL_SIZE=${{ vars.MONGO_MAX_POOL_SIZE || '20' }}
+            REDIS_HOST=${{ vars.REDIS_HOST || '127.0.0.1' }}
+            REDIS_PORT=${{ vars.REDIS_PORT || '6379' }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=${{ vars.JWT_EXPIRES_IN || '1d' }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            JWT_REFRESH_EXPIRES_IN=${{ vars.JWT_REFRESH_EXPIRES_IN || '7d' }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY || 'sk_test_placeholder' }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder' }}
+            LOG_LEVEL=${{ vars.LOG_LEVEL || 'info' }}
+            EOF
+
+            # 4. Install production dependencies
+            echo "📥 Installing dependencies..."
+            npm install --omit=dev
+
+            # 5. Build TypeScript production artifacts
+            echo "🔨 Compiling TypeScript..."
+            npm run build
+
+            # 6. Seed initial database records (safe if already seeded)
+            echo "🌱 Checking database seed..."
+            npm run seed || echo "Seed already present or skipped"
+
+            # 7. Start or Reload PM2 with Zero Downtime
+            echo "⚡ Reloading PM2 process..."
+            pm2 startOrReload ecosystem.config.cjs --update-env
+            pm2 save
+
+            echo "✅ Deployment completed successfully! Backend is online."
