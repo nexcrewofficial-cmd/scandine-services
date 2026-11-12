@@ -37,6 +37,8 @@ jobs:
     needs: build-and-verify
     if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: SSH into Hostinger VPS and Deploy
         uses: appleboy/ssh-action@v1.0.3
@@ -49,36 +51,41 @@ jobs:
           script: |
             echo "🚀 Starting automated deployment on Hostinger VPS..."
 
-            # Ensure PATH finds node, npm, and npx
-            export PATH=$PATH:/usr/local/bin:/usr/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.npm-global/bin
-
-            # 1. Determine app directory (user home directory to avoid sudo password prompts)
-            APP_DIR="${{ vars.APP_DIR || '' }}"
-            if [ -z "$APP_DIR" ]; then
-              if [ "$USER" = "root" ]; then
-                APP_DIR="/var/www/scan-and-dine"
-              else
-                APP_DIR="$HOME/scan-and-dine"
-              fi
+            # 1. Load user shell profiles & NVM if present
+            [ -f ~/.profile ] && . ~/.profile 2>/dev/null || true
+            [ -f ~/.bashrc ] && . ~/.bashrc 2>/dev/null || true
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              . "$HOME/.nvm/nvm.sh" 2>/dev/null || true
             fi
+            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:$HOME/.npm-global/bin
 
+            # Verify Node.js and npm are available
+            echo "🟢 Node version: $(node -v 2>/dev/null || echo 'Node not in PATH')"
+            echo "🟢 NPM version: $(npm -v 2>/dev/null || echo 'NPM not in PATH')"
+
+            # 2. Prepare app directory
+            APP_DIR="$HOME/scan-and-dine"
             mkdir -p "$APP_DIR"
             cd "$APP_DIR"
             echo "📂 Working directory: $(pwd)"
 
-            # 2. Check if git repo is initialized, if not clone it
+            # 3. Authenticated Git Clone / Pull for Private Repository
+            REPO_AUTH_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
             if [ ! -d ".git" ]; then
-              echo "📦 First time setup: Cloning repository branch ${{ github.ref_name }}..."
-              git clone -b ${{ github.ref_name }} https://github.com/${{ github.repository }}.git .
+              echo "📦 First time setup: Cloning private repository branch ${{ github.ref_name }}..."
+              git clone -b ${{ github.ref_name }} "$REPO_AUTH_URL" .
             else
               echo "🔄 Pulling latest changes from ${{ github.ref_name }}..."
+              git remote set-url origin "$REPO_AUTH_URL"
               git fetch origin
               git checkout ${{ github.ref_name }}
               git reset --hard origin/${{ github.ref_name }}
               git pull origin ${{ github.ref_name }}
             fi
 
-            # 3. Automatically inject .env from GitHub Secrets & Variables (Dev Server Mode)
+            # 4. Inject .env from GitHub Secrets & Variables (Dev Server Mode)
             echo "🔐 Writing dev .env configuration..."
             cat << 'EOF' > .env
             NODE_ENV=${{ vars.NODE_ENV || 'development' }}
@@ -97,19 +104,19 @@ jobs:
             LOG_LEVEL=${{ vars.LOG_LEVEL || 'debug' }}
             EOF
 
-            # 4. Install dependencies (including devDependencies required for tsc build)
+            # 5. Install dependencies
             echo "📥 Installing dependencies..."
             npm install
 
-            # 5. Build TypeScript production artifacts
+            # 6. Build TypeScript production artifacts
             echo "🔨 Compiling TypeScript..."
             npm run build
 
-            # 6. Seed initial database records (safe if already seeded)
+            # 7. Seed initial database records (safe if already seeded)
             echo "🌱 Checking database seed..."
             npm run seed || echo "Seed already present or skipped"
 
-            # 7. Start or Reload PM2 with Zero Downtime
+            # 8. Start or Reload PM2 with Zero Downtime
             echo "⚡ Reloading PM2 process on PORT 8080..."
             npx pm2 startOrReload ecosystem.config.cjs --update-env || pm2 startOrReload ecosystem.config.cjs --update-env
             npx pm2 save || pm2 save
