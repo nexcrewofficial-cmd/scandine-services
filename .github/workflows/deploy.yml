@@ -67,6 +67,10 @@ jobs:
             # 2. Prepare app directory
             if [ -d "$HOME/scan-and-dine/scandine-services/.git" ]; then
               APP_DIR="$HOME/scan-and-dine/scandine-services"
+            elif [ -d "$HOME/scan-and-dine/.git" ]; then
+              APP_DIR="$HOME/scan-and-dine"
+            elif [ -d "$HOME/scan-and-dine/scandine-services" ]; then
+              APP_DIR="$HOME/scan-and-dine/scandine-services"
             else
               APP_DIR="$HOME/scan-and-dine"
             fi
@@ -79,6 +83,7 @@ jobs:
 
             if [ ! -d ".git" ]; then
               echo "📦 First time setup: Cloning private repository branch ${{ github.ref_name }}..."
+              find . -mindepth 1 -delete 2>/dev/null || true
               git clone -b ${{ github.ref_name }} "$REPO_AUTH_URL" .
             else
               echo "🔄 Pulling latest changes from ${{ github.ref_name }}..."
