@@ -2,34 +2,23 @@ name: Scan & Dine Backend CI/CD
 
 on:
   push:
-    branches:
-      - dev
-      - main
-
+    branches: [dev, main]
   pull_request:
-    branches:
-      - dev
-      - main
+    branches: [dev, main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: scan-dine-${{ github.ref }}
+  group: scan-dine-vps-deployment
   cancel-in-progress: false
 
 jobs:
-
-  # ==========================================
-  # 1. BUILD AND TEST
-  # ==========================================
-
   build-and-verify:
     name: Build and Verify
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -47,46 +36,46 @@ jobs:
         env:
           NODE_ENV: production
 
-  # ==========================================
-  # 2. DEPLOY TO HOSTINGER VPS
-  # ==========================================
-
   deploy-to-vps:
     name: Deploy Backend
     needs: build-and-verify
-
     if: github.event_name == 'push'
-
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Deploy Through SSH
         uses: appleboy/ssh-action@v1.2.2
+
+        env:
+          APP_NODE_ENV: ${{ vars.NODE_ENV || (github.ref == 'refs/heads/main' && 'production' || 'development') }}
+          APP_PORT: ${{ vars.PORT || '8080' }}
+          APP_SERVICE_NAME: ${{ vars.SERVICE_NAME || 'ALL' }}
+          APP_MONGO_URI: ${{ secrets.MONGO_URI }}
+          APP_MONGO_MAX_POOL_SIZE: ${{ vars.MONGO_MAX_POOL_SIZE || '20' }}
+          APP_REDIS_HOST: ${{ vars.REDIS_HOST || '127.0.0.1' }}
+          APP_REDIS_PORT: ${{ vars.REDIS_PORT || '6379' }}
+          APP_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          APP_JWT_EXPIRES_IN: ${{ vars.JWT_EXPIRES_IN || '7d' }}
+          APP_JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          APP_JWT_REFRESH_EXPIRES_IN: ${{ vars.JWT_REFRESH_EXPIRES_IN || '30d' }}
+          APP_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          APP_STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          APP_LOG_LEVEL: ${{ vars.LOG_LEVEL || (github.ref == 'refs/heads/main' && 'info' || 'debug') }}
 
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || '22' }}
-
           timeout: 30s
           command_timeout: 15m
-          script_stop: true
+          envs: APP_NODE_ENV,APP_PORT,APP_SERVICE_NAME,APP_MONGO_URI,APP_MONGO_MAX_POOL_SIZE,APP_REDIS_HOST,APP_REDIS_PORT,APP_JWT_SECRET,APP_JWT_EXPIRES_IN,APP_JWT_REFRESH_SECRET,APP_JWT_REFRESH_EXPIRES_IN,APP_STRIPE_SECRET_KEY,APP_STRIPE_WEBHOOK_SECRET,APP_LOG_LEVEL
 
           script: |
             set -Eeuo pipefail
-
             trap 'status=$?; echo "Deployment failed at line $LINENO (exit $status)"; exit "$status"' ERR
 
-            echo "===================================="
-            echo "SCAN & DINE BACKEND DEPLOYMENT"
-            echo "===================================="
-
-            # 1. Node environment
-
             export NVM_DIR="$HOME/.nvm"
-
             if [ -s "$NVM_DIR/nvm.sh" ]; then
               . "$NVM_DIR/nvm.sh"
             fi
@@ -95,9 +84,6 @@ jobs:
 
             node -v
             npm -v
-            git --version
-
-            # 2. Configuration
 
             BRANCH="${{ github.ref_name }}"
             APP_DIR="$HOME/scan-and-dine/scandine-services"
@@ -106,24 +92,13 @@ jobs:
             mkdir -p "$APP_DIR"
             cd "$APP_DIR"
 
-            echo "Branch: $BRANCH"
-            echo "Directory: $(pwd)"
-
-            # 3. Git synchronization
-
-            echo "Updating repository..."
-
-            if [ ! -d .git ]; then
-
+            if [ ! -d ".git" ]; then
               if [ -n "$(find . -mindepth 1 -maxdepth 1 -print -quit)" ]; then
                 echo "Application directory is not empty."
                 exit 1
               fi
-
               git clone -b "$BRANCH" "$REPO" .
-
             else
-
               if git remote get-url origin >/dev/null 2>&1; then
                 git remote set-url origin "$REPO"
               else
@@ -133,116 +108,92 @@ jobs:
               git fetch origin "$BRANCH"
               git checkout -B "$BRANCH" "origin/$BRANCH"
               git reset --hard "origin/$BRANCH"
-              git clean -fd
-
+              git clean -fd -e .env
             fi
 
-            echo "Commit: $(git rev-parse --short HEAD)"
+            echo "Deploying commit: $(git rev-parse --short HEAD)"
 
-            # 4. Environment validation
-
-            echo "Checking .env..."
-
-            if [ ! -f .env ]; then
-              echo "Missing .env file."
-              exit 1
-            fi
-
-            chmod 600 .env
-
-            for KEY in MONGO_URI JWT_SECRET JWT_REFRESH_SECRET; do
-              if ! grep -q "^${KEY}=." .env; then
-                echo "Missing required environment variable: $KEY"
+            for KEY in APP_MONGO_URI APP_JWT_SECRET APP_JWT_REFRESH_SECRET; do
+              if [ -z "${!KEY:-}" ]; then
+                echo "Missing required configuration: $KEY"
                 exit 1
               fi
             done
 
-            # 5. Install dependencies
+            umask 077
 
-            echo "Installing dependencies..."
+            node <<'NODE'
+            const fs = require('fs');
+
+            const config = {
+              NODE_ENV: process.env.APP_NODE_ENV,
+              PORT: process.env.APP_PORT,
+              SERVICE_NAME: process.env.APP_SERVICE_NAME,
+              MONGO_URI: process.env.APP_MONGO_URI,
+              MONGO_MAX_POOL_SIZE: process.env.APP_MONGO_MAX_POOL_SIZE,
+              REDIS_HOST: process.env.APP_REDIS_HOST,
+              REDIS_PORT: process.env.APP_REDIS_PORT,
+              JWT_SECRET: process.env.APP_JWT_SECRET,
+              JWT_EXPIRES_IN: process.env.APP_JWT_EXPIRES_IN,
+              JWT_REFRESH_SECRET: process.env.APP_JWT_REFRESH_SECRET,
+              JWT_REFRESH_EXPIRES_IN: process.env.APP_JWT_REFRESH_EXPIRES_IN,
+              STRIPE_SECRET_KEY: process.env.APP_STRIPE_SECRET_KEY,
+              STRIPE_WEBHOOK_SECRET: process.env.APP_STRIPE_WEBHOOK_SECRET,
+              LOG_LEVEL: process.env.APP_LOG_LEVEL
+            };
+
+            const content = Object.entries(config)
+              .map(([key, value]) => `${key}=${JSON.stringify(value ?? '')}`)
+              .join('\n') + '\n';
+
+            fs.writeFileSync('.env', content, { mode: 0o600 });
+            fs.chmodSync('.env', 0o600);
+            console.log('.env generated successfully.');
+            NODE
 
             npm ci
-
-            # 6. Build
-
-            echo "Building TypeScript..."
-
             npm run build
 
-            # 7. Seed development database only
-
             if [ "$BRANCH" = "dev" ]; then
-
-              echo "Running development database seed..."
-
               npm run seed
-
-            else
-
-              echo "Skipping production seed."
-
             fi
 
-            # 8. PM2 deployment
-
-            echo "Checking ecosystem configuration..."
-
             if [ ! -f ecosystem.config.cjs ]; then
-              echo "ecosystem.config.cjs missing."
+              echo "ecosystem.config.cjs not found."
               exit 1
             fi
 
-            echo "Reloading PM2..."
-
             if npx --no-install pm2 describe scan-and-dine-backend >/dev/null 2>&1; then
-
               npx --no-install pm2 startOrReload ecosystem.config.cjs --update-env
-
             else
-
               npx --no-install pm2 start ecosystem.config.cjs
-
             fi
 
             npx --no-install pm2 save
-
             npx --no-install pm2 status
 
-            # 9. Health check
-
-            echo "Checking application health..."
-
-            HEALTH_URL="http://127.0.0.1:8080/api/v1/health"
+            HEALTH_URL="http://127.0.0.1:${APP_PORT}/api/v1/health"
             HEALTHY=false
 
             for ATTEMPT in $(seq 1 15); do
-
-              STATUS=$(curl -sS \
-                --max-time 5 \
-                -o /dev/null \
-                -w "%{http_code}" \
-                "$HEALTH_URL" || true)
-
-              echo "Health check $ATTEMPT: $STATUS"
+              STATUS=$(curl -sS --max-time 5 -o /dev/null -w "%{http_code}" "$HEALTH_URL" || true)
 
               if [ "$STATUS" = "200" ]; then
                 HEALTHY=true
                 break
               fi
 
+              echo "Health check $ATTEMPT: ${STATUS:-unreachable}"
               sleep 2
-
             done
 
             if [ "$HEALTHY" != "true" ]; then
-              echo "Health check failed."
               npx --no-install pm2 logs scan-and-dine-backend --lines 30 --nostream || true
+              echo "Backend health check failed."
               exit 1
             fi
 
-            echo "===================================="
-            echo "DEPLOYMENT SUCCESSFUL"
+            echo "Deployment successful."
             echo "Branch: $BRANCH"
             echo "Commit: $(git rev-parse --short HEAD)"
-            echo "Port: 8080"
-            echo "===================================="
+            echo "Port: $APP_PORT"
