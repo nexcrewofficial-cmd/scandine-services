@@ -1,203 +1,248 @@
-name: Scan & Dine Backend CI/CD Pipeline
+name: Scan & Dine Backend CI/CD
 
 on:
   push:
-    branches: [ main, dev ]
+    branches:
+      - dev
+      - main
+
   pull_request:
-    branches: [ main, dev ]
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-dine-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  # =========================================================================
-  # 1. TEST & BUILD CHECK (Runs on GitHub Cloud Runner)
-  # =========================================================================
+
+  # ==========================================
+  # 1. BUILD AND TEST
+  # ==========================================
+
   build-and-verify:
+    name: Build and Verify
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20.x
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Verify TypeScript Compilation
+      - name: Build Backend
         run: npm run build
         env:
           NODE_ENV: production
 
-  # =========================================================================
-  # 2. AUTOMATIC ZERO-INTERACTION DEPLOY TO HOSTINGER VPS
-  # =========================================================================
+  # ==========================================
+  # 2. DEPLOY TO HOSTINGER VPS
+  # ==========================================
+
   deploy-to-vps:
+    name: Deploy Backend
     needs: build-and-verify
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push'
+
+    if: github.event_name == 'push'
+
     runs-on: ubuntu-latest
+
     steps:
-      - name: SSH into Hostinger VPS and Deploy
-        uses: appleboy/ssh-action@v1.0.3
+
+      - name: Deploy Through SSH
+        uses: appleboy/ssh-action@v1.2.2
+
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME || 'moosadevv' }}
+          username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
+          port: ${{ secrets.VPS_PORT || '22' }}
+
+          timeout: 30s
+          command_timeout: 15m
           script_stop: true
+
           script: |
-            # -------------------------------------------------------------
-            # [1/9] Load Shell Environment & Node.js Runtime
-            # -------------------------------------------------------------
-            echo "🚀 [1/9] Initializing deployment environment..."
-            [ -f ~/.profile ] && . ~/.profile 2>/dev/null || true
-            [ -f ~/.bashrc ] && . ~/.bashrc 2>/dev/null || true
-            if [ -s "$HOME/.nvm/nvm.sh" ]; then
-              export NVM_DIR="$HOME/.nvm"
-              . "$HOME/.nvm/nvm.sh" 2>/dev/null || true
+            set -Eeuo pipefail
+
+            trap 'status=$?; echo "Deployment failed at line $LINENO (exit $status)"; exit "$status"' ERR
+
+            echo "===================================="
+            echo "SCAN & DINE BACKEND DEPLOYMENT"
+            echo "===================================="
+
+            # 1. Node environment
+
+            export NVM_DIR="$HOME/.nvm"
+
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
             fi
-            export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:$HOME/.npm-global/bin
 
-            NODE_VER=$(node -v 2>/dev/null || echo "not found")
-            NPM_VER=$(npm -v 2>/dev/null || echo "not found")
-            echo "   Node.js : ${NODE_VER}"
-            echo "   NPM     : ${NPM_VER}"
+            export PATH="$HOME/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
-            if [ "${NODE_VER}" = "not found" ]; then
-              echo "❌ Error: Node.js is not available in PATH on the VPS."
+            node -v
+            npm -v
+            git --version
+
+            # 2. Configuration
+
+            BRANCH="${{ github.ref_name }}"
+            APP_DIR="$HOME/scan-and-dine/scandine-services"
+            REPO="git@github.com:nexcrewofficial-cmd/scandine-services.git"
+
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+
+            echo "Branch: $BRANCH"
+            echo "Directory: $(pwd)"
+
+            # 3. Git synchronization
+
+            echo "Updating repository..."
+
+            if [ ! -d .git ]; then
+
+              if [ -n "$(find . -mindepth 1 -maxdepth 1 -print -quit)" ]; then
+                echo "Application directory is not empty."
+                exit 1
+              fi
+
+              git clone -b "$BRANCH" "$REPO" .
+
+            else
+
+              if git remote get-url origin >/dev/null 2>&1; then
+                git remote set-url origin "$REPO"
+              else
+                git remote add origin "$REPO"
+              fi
+
+              git fetch origin "$BRANCH"
+              git checkout -B "$BRANCH" "origin/$BRANCH"
+              git reset --hard "origin/$BRANCH"
+              git clean -fd
+
+            fi
+
+            echo "Commit: $(git rev-parse --short HEAD)"
+
+            # 4. Environment validation
+
+            echo "Checking .env..."
+
+            if [ ! -f .env ]; then
+              echo "Missing .env file."
               exit 1
             fi
 
-            # -------------------------------------------------------------
-            # [2/9] Target Application Directory Validation
-            # -------------------------------------------------------------
-            echo "📂 [2/9] Resolving application directory..."
-            TARGET_BRANCH="${{ github.ref_name }}"
-            APP_DIR="/home/moosadevv/scan-and-dine/scandine-services"
+            chmod 600 .env
 
-            if [ ! -d "$APP_DIR" ]; then
-              echo "   Directory $APP_DIR does not exist. Creating..."
-              mkdir -p "$APP_DIR"
-            fi
-
-            cd "$APP_DIR"
-            echo "   Active directory: $(pwd)"
-
-            # -------------------------------------------------------------
-            # [3/9] Safe Git Synchronization via Confirmed SSH Remote
-            # -------------------------------------------------------------
-            echo "🔄 [3/9] Synchronizing code via SSH authentication..."
-            SSH_REMOTE="git@github.com:nexcrewofficial-cmd/scandine-services.git"
-
-            if [ ! -d ".git" ]; then
-              echo "   Cloning repository via SSH branch ${TARGET_BRANCH}..."
-              git clone -b "${TARGET_BRANCH}" "$SSH_REMOTE" .
-            else
-              echo "   Verifying origin remote..."
-              CURRENT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
-              if [ "$CURRENT_REMOTE" != "$SSH_REMOTE" ]; then
-                echo "   Updating origin URL to: ${SSH_REMOTE}"
-                git remote set-url origin "$SSH_REMOTE"
+            for KEY in MONGO_URI JWT_SECRET JWT_REFRESH_SECRET; do
+              if ! grep -q "^${KEY}=." .env; then
+                echo "Missing required environment variable: $KEY"
+                exit 1
               fi
+            done
 
-              echo "   Fetching branch origin/${TARGET_BRANCH}..."
-              git fetch origin "${TARGET_BRANCH}"
+            # 5. Install dependencies
 
-              echo "   Checking out branch ${TARGET_BRANCH}..."
-              git checkout "${TARGET_BRANCH}"
+            echo "Installing dependencies..."
 
-              echo "   Resetting working tree to match origin/${TARGET_BRANCH}..."
-              git reset --hard "origin/${TARGET_BRANCH}"
-              git clean -fd
-            fi
-
-            DEPLOYED_COMMIT=$(git log -1 --format="%h - %s (%ci)")
-            echo "   ✅ Deployed commit: ${DEPLOYED_COMMIT}"
-
-            # -------------------------------------------------------------
-            # [4/9] Environment Configuration (.env)
-            # -------------------------------------------------------------
-            echo "🔐 [4/9] Verifying environment configuration..."
-            APP_PORT="${{ vars.PORT || '8080' }}"
-            APP_ENV="${{ vars.NODE_ENV || (github.ref == 'refs/heads/main' && 'production' || 'development') }}"
-            APP_LOG_LEVEL="${{ vars.LOG_LEVEL || (github.ref == 'refs/heads/main' && 'info' || 'debug') }}"
-
-            # If GitHub Secret MONGO_URI is set, inject managed .env; otherwise protect existing VPS .env
-            if [ -n "${{ secrets.MONGO_URI }}" ]; then
-              echo "   Generating .env from GitHub Secrets & Variables..."
-              cat << 'EOF' > .env
-            NODE_ENV=${{ vars.NODE_ENV || (github.ref == 'refs/heads/main' && 'production' || 'development') }}
-            PORT=${{ vars.PORT || '8080' }}
-            SERVICE_NAME=${{ vars.SERVICE_NAME || 'ALL' }}
-            MONGO_URI=${{ secrets.MONGO_URI }}
-            MONGO_MAX_POOL_SIZE=${{ vars.MONGO_MAX_POOL_SIZE || '20' }}
-            REDIS_HOST=${{ vars.REDIS_HOST || '127.0.0.1' }}
-            REDIS_PORT=${{ vars.REDIS_PORT || '6379' }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRES_IN=${{ vars.JWT_EXPIRES_IN || '7d' }}
-            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
-            JWT_REFRESH_EXPIRES_IN=${{ vars.JWT_REFRESH_EXPIRES_IN || '30d' }}
-            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
-            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
-            LOG_LEVEL=${{ vars.LOG_LEVEL || (github.ref == 'refs/heads/main' && 'info' || 'debug') }}
-            EOF
-            elif [ -f .env ]; then
-              echo "   Preserving existing verified .env on VPS."
-            else
-              echo "⚠️ Warning: No .env found on VPS and secrets.MONGO_URI is unset in GitHub."
-            fi
-
-            # -------------------------------------------------------------
-            # [5/9] Clean Dependency Installation (npm ci)
-            # -------------------------------------------------------------
-            echo "📥 [5/9] Installing dependencies (npm ci)..."
             npm ci
 
-            # -------------------------------------------------------------
-            # [6/9] TypeScript Compilation & Alias Resolution
-            # -------------------------------------------------------------
-            echo "🔨 [6/9] Compiling TypeScript backend (npm run build)..."
+            # 6. Build
+
+            echo "Building TypeScript..."
+
             npm run build
 
-            # -------------------------------------------------------------
-            # [7/9] Database Seed Execution (Idempotent for dev)
-            # -------------------------------------------------------------
-            if [ "${TARGET_BRANCH}" = "dev" ]; then
-              echo "🌱 [7/9] Running database seed (dev branch)..."
+            # 7. Seed development database only
+
+            if [ "$BRANCH" = "dev" ]; then
+
+              echo "Running development database seed..."
+
               npm run seed
+
             else
-              echo "⏩ [7/9] Skipping database seed for production (${TARGET_BRANCH})."
+
+              echo "Skipping production seed."
+
             fi
 
-            # -------------------------------------------------------------
-            # [8/9] PM2 Process Management (Zero Downtime)
-            # -------------------------------------------------------------
-            echo "⚡ [8/9] Managing PM2 process (scan-and-dine-backend)..."
-            if npx pm2 describe scan-and-dine-backend > /dev/null 2>&1; then
-              echo "   Existing process found. Reloading configuration..."
-              npx pm2 reload ecosystem.config.cjs --update-env
-            else
-              echo "   Starting new process with ecosystem.config.cjs..."
-              npx pm2 start ecosystem.config.cjs
+            # 8. PM2 deployment
+
+            echo "Checking ecosystem configuration..."
+
+            if [ ! -f ecosystem.config.cjs ]; then
+              echo "ecosystem.config.cjs missing."
+              exit 1
             fi
 
-            echo "💾 Saving PM2 process state..."
-            npx pm2 save
+            echo "Reloading PM2..."
 
-            # -------------------------------------------------------------
-            # [9/9] Health Verification & Deployment Confirmation
-            # -------------------------------------------------------------
-            echo "🩺 [9/9] Verifying service health on port ${APP_PORT}..."
-            sleep 3
+            if npx --no-install pm2 describe scan-and-dine-backend >/dev/null 2>&1; then
 
-            HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${APP_PORT}/api/v1/health" || echo "unreachable")
-            echo "   Health check response: HTTP ${HEALTH_STATUS}"
+              npx --no-install pm2 startOrReload ecosystem.config.cjs --update-env
 
-            if [ "$HEALTH_STATUS" = "200" ]; then
-              echo "✅ Deployment completed successfully! Scan & Dine Backend is online on PORT ${APP_PORT}."
             else
-              echo "⚠️ Service responded with HTTP ${HEALTH_STATUS}. Checking recent logs:"
-              npx pm2 logs scan-and-dine-backend --lines 15 --nostream || true
+
+              npx --no-install pm2 start ecosystem.config.cjs
+
             fi
 
+            npx --no-install pm2 save
+
+            npx --no-install pm2 status
+
+            # 9. Health check
+
+            echo "Checking application health..."
+
+            HEALTH_URL="http://127.0.0.1:8080/api/v1/health"
+            HEALTHY=false
+
+            for ATTEMPT in $(seq 1 15); do
+
+              STATUS=$(curl -sS \
+                --max-time 5 \
+                -o /dev/null \
+                -w "%{http_code}" \
+                "$HEALTH_URL" || true)
+
+              echo "Health check $ATTEMPT: $STATUS"
+
+              if [ "$STATUS" = "200" ]; then
+                HEALTHY=true
+                break
+              fi
+
+              sleep 2
+
+            done
+
+            if [ "$HEALTHY" != "true" ]; then
+              echo "Health check failed."
+              npx --no-install pm2 logs scan-and-dine-backend --lines 30 --nostream || true
+              exit 1
+            fi
+
+            echo "===================================="
+            echo "DEPLOYMENT SUCCESSFUL"
+            echo "Branch: $BRANCH"
+            echo "Commit: $(git rev-parse --short HEAD)"
+            echo "Port: 8080"
+            echo "===================================="
