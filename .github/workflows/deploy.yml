@@ -65,7 +65,11 @@ jobs:
             echo "🟢 NPM version: $(npm -v 2>/dev/null || echo 'NPM not in PATH')"
 
             # 2. Prepare app directory
-            APP_DIR="$HOME/scan-and-dine"
+            if [ -d "$HOME/scan-and-dine/scandine-services/.git" ]; then
+              APP_DIR="$HOME/scan-and-dine/scandine-services"
+            else
+              APP_DIR="$HOME/scan-and-dine"
+            fi
             mkdir -p "$APP_DIR"
             cd "$APP_DIR"
             echo "📂 Working directory: $(pwd)"
