@@ -91,6 +91,7 @@ jobs:
               git fetch origin
               git checkout ${{ github.ref_name }}
               git reset --hard origin/${{ github.ref_name }}
+              git clean -fd
               git pull origin ${{ github.ref_name }}
             fi
 
@@ -127,7 +128,7 @@ jobs:
 
             # 8. Start or Reload PM2 with Zero Downtime
             echo "⚡ Reloading PM2 process on PORT 8080..."
-            npx pm2 startOrReload ecosystem.config.cjs --update-env || pm2 startOrReload ecosystem.config.cjs --update-env
+            npx pm2 reload ecosystem.config.cjs --update-env || (npx pm2 delete scan-and-dine-backend 2>/dev/null || true; npx pm2 start ecosystem.config.cjs)
             npx pm2 save || pm2 save
 
             echo "✅ Deployment completed successfully! Backend is online on PORT 8080."
