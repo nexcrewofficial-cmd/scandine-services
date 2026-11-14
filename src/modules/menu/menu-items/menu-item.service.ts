@@ -1,15 +1,15 @@
-import { MenuItemModel, IMenuItemDocument } from './menu-item.model.js';
-import { CategoryModel } from '../categories/category.model.js';
-import { VenueModel } from '../venues/venue.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { CreateMenuItemDTO, UpdateMenuItemDTO } from '@scan-and-dine/shared-types';
-import { publishEvent, EventChannels } from '@scan-and-dine/event-bus';
+import { MenuItemModel, IMenuItemDocument } from "./menu-item.model.js";
+import { CategoryModel } from "../categories/category.model.js";
+import { VenueModel } from "../venues/venue.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { CreateMenuItemDTO, UpdateMenuItemDTO } from "@scan-and-dine/shared-types";
+import { publishEvent, EventChannels } from "@scan-and-dine/event-bus";
 
 export class MenuItemService {
   static async getPublicCatalog(venueSlug: string) {
     const venue = await VenueModel.findOne({ slug: venueSlug.toLowerCase(), isActive: true });
     if (!venue) {
-      throw AppError.notFound('Venue not found');
+      throw AppError.notFound(errorMessage.notFound("Venue"));
     }
 
     const categories = await CategoryModel.find({
@@ -40,13 +40,13 @@ export class MenuItemService {
   }
 
   static async listItems(venueId: string): Promise<IMenuItemDocument[]> {
-    return MenuItemModel.find({ venueId, deletedAt: null }).populate('categoryId', 'name');
+    return MenuItemModel.find({ venueId, deletedAt: null }).populate("categoryId", "name");
   }
 
   static async getItemById(venueId: string, itemId: string): Promise<IMenuItemDocument> {
     const item = await MenuItemModel.findOne({ _id: itemId, venueId, deletedAt: null });
     if (!item) {
-      throw AppError.notFound('Menu item not found');
+      throw AppError.notFound(errorMessage.notFound("Menu item"));
     }
     return item;
   }
@@ -66,12 +66,12 @@ export class MenuItemService {
       { new: true }
     );
     if (!item) {
-      throw AppError.notFound('Menu item not found');
+      throw AppError.notFound(errorMessage.notFound("Menu item"));
     }
     return item;
   }
 
-  // 86-ing: Instant Out-of-Stock Toggle
+  // Instant Out-of-Stock Toggle
   static async toggleAvailability(
     venueId: string,
     itemId: string,
@@ -84,7 +84,7 @@ export class MenuItemService {
     );
 
     if (!item) {
-      throw AppError.notFound('Menu item not found');
+      throw AppError.notFound(errorMessage.notFound("Menu item"));
     }
 
     // Publish event across Redis bus so service-websockets notifies all active customer phones
@@ -107,7 +107,7 @@ export class MenuItemService {
       { deletedAt: new Date() }
     );
     if (!item) {
-      throw AppError.notFound('Menu item not found');
+      throw AppError.notFound(errorMessage.notFound("Menu item"));
     }
   }
 }

@@ -257,7 +257,29 @@ All controller handlers return standardized responses using `responseUtils.succe
   ```
 * **Double Quotes (`"`) Mandatory**: Every message definition inside `messages.constant.ts` and codebase must strictly use double quotes.
 
+---
 
+## 10. Strict TypeScript Typing (Zero `any` Standard)
 
+To maintain platform stability, enterprise type safety, and eliminate runtime exceptions:
+1. **Never use `as any` or raw untyped `any`**: If an interface or type exists, reuse it. If not, create a dedicated interface/type in `*.interface.ts` or `src/shared/types/`.
+2. **Reuse Existing Domain Types & Payloads**:
+   - `JwtAuthPayload` / `AuthenticatedUser` for decoded authentication tokens and request context.
+   - Domain DTOs (`AdminLoginDTO`, `StaffPinLoginDTO`, `CreateMenuItemDTO`, etc.) for service method signatures.
+   - Mongoose typed documents (`IUserDocument`, `IMenuItemDocument`, etc.) for database operations.
+3. **Type Third-Party Library Options Explicitly**:
+   - For `jsonwebtoken`, import and apply `SignOptions`:
+     ```typescript
+     import jwt, { SignOptions } from "jsonwebtoken";
 
+     const signOptions: SignOptions = {
+       expiresIn: config.jwtExpiresIn as SignOptions["expiresIn"],
+     };
+     const token = jwt.sign(payload, secret, signOptions);
+     ```
+   - For decoded tokens:
+     ```typescript
+     const decoded = jwt.verify(token, secret) as JwtAuthPayload;
+     ```
+4. **Fallback Rule**: Only fall back to `unknown` or `any` if a third-party library genuinely lacks types or cannot be typed, and document the reason explicitly.
 

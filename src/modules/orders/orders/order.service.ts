@@ -1,8 +1,9 @@
-import { OrderModel, IOrderDocument } from './order.model.js';
-import { OrderUtils } from './order.utils.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { CreateOrderDTO, OrderStatus, PaymentStatus } from '@scan-and-dine/shared-types';
-import { publishEvent, EventChannels } from '@scan-and-dine/event-bus';
+import { FilterQuery } from "mongoose";
+import { OrderModel, IOrderDocument } from "./order.model.js";
+import { OrderUtils } from "./order.utils.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { CreateOrderDTO, OrderStatus, PaymentStatus, PaymentMethod } from "@scan-and-dine/shared-types";
+import { publishEvent, EventChannels } from "@scan-and-dine/event-bus";
 
 export class OrderService {
   static async createOrder(venueId: string, dto: CreateOrderDTO): Promise<IOrderDocument> {
@@ -19,7 +20,7 @@ export class OrderService {
       paymentStatus: PaymentStatus.UNPAID,
       paymentMethod: dto.paymentMethod,
       orderNumber,
-      status: dto.paymentMethod === 'CASH' ? OrderStatus.SENT_TO_KITCHEN : OrderStatus.PENDING_PAYMENT,
+      status: dto.paymentMethod === PaymentMethod.CASH ? OrderStatus.SENT_TO_KITCHEN : OrderStatus.PENDING_PAYMENT,
       notes: dto.notes,
       version: 0,
     });
@@ -54,9 +55,7 @@ export class OrderService {
     );
 
     if (!order) {
-      throw AppError.conflict(
-        'Concurrency conflict: Order was updated by another staff member. Please refresh.'
-      );
+      throw AppError.conflict(errorMessage.concurrencyConflict);
     }
 
     // Emit event across Redis bus
@@ -74,13 +73,13 @@ export class OrderService {
   static async getOrderById(venueId: string, orderId: string): Promise<IOrderDocument> {
     const order = await OrderModel.findOne({ _id: orderId, venueId, deletedAt: null });
     if (!order) {
-      throw AppError.notFound('Order not found');
+      throw AppError.notFound(errorMessage.notFound("Order"));
     }
     return order;
   }
 
   static async listOrdersByVenue(venueId: string, status?: string): Promise<IOrderDocument[]> {
-    const query: any = { venueId, deletedAt: null };
+    const query: FilterQuery<IOrderDocument> = { venueId, deletedAt: null };
     if (status) query.status = status;
     return OrderModel.find(query).sort({ createdAt: -1 });
   }

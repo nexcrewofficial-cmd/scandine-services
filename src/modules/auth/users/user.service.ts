@@ -1,19 +1,19 @@
-import bcrypt from 'bcryptjs';
-import { UserModel, IUserDocument } from './user.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { RegisterStaffDTO } from '@scan-and-dine/shared-types';
+import bcrypt from "bcryptjs";
+import { UserModel, IUserDocument } from "./user.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { RegisterStaffDTO } from "@scan-and-dine/shared-types";
 
 export class UserService {
   static async getStaffByVenue(venueId: string): Promise<IUserDocument[]> {
-    return UserModel.find({ venueId, deletedAt: null }).select('-passwordHash -pinCodeHash');
+    return UserModel.find({ venueId, deletedAt: null }).select("-passwordHash -pinCodeHash");
   }
 
   static async getStaffById(venueId: string, userId: string): Promise<IUserDocument> {
     const user = await UserModel.findOne({ _id: userId, venueId, deletedAt: null }).select(
-      '-passwordHash -pinCodeHash'
+      "-passwordHash -pinCodeHash"
     );
     if (!user) {
-      throw AppError.notFound('Staff member not found');
+      throw AppError.notFound(errorMessage.notFound("Staff member"));
     }
     return user;
   }
@@ -21,7 +21,7 @@ export class UserService {
   static async createStaff(venueId: string, data: RegisterStaffDTO): Promise<IUserDocument> {
     const existing = await UserModel.findOne({ venueId, email: data.email.toLowerCase() });
     if (existing) {
-      throw AppError.conflict('A user with this email already exists in this venue');
+      throw AppError.conflict(errorMessage.emailInUse);
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -45,7 +45,7 @@ export class UserService {
   ): Promise<IUserDocument> {
     const user = await UserModel.findOne({ _id: userId, venueId, deletedAt: null });
     if (!user) {
-      throw AppError.notFound('Staff member not found');
+      throw AppError.notFound(errorMessage.notFound("Staff member"));
     }
 
     if (data.pinCode) {
@@ -74,7 +74,7 @@ export class UserService {
       { isActive: false, deletedAt: new Date() }
     );
     if (!user) {
-      throw AppError.notFound('Staff member not found');
+      throw AppError.notFound(errorMessage.notFound("Staff member"));
     }
   }
 }

@@ -181,7 +181,7 @@ export const initWebSockets = (server: http.Server): Server => {
 
 export const getIO = (): Server => {
   if (!io) {
-    throw new Error('Socket.io has not been initialized. Call initWebSockets first.');
+    throw new Error("Socket.io has not been initialized. Call initWebSockets first.");
   }
   return io;
 };

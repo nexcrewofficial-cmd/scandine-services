@@ -167,7 +167,7 @@ export class KDSService {
     }
 
     if (!order.items[itemIndex]) {
-      throw AppError.badRequest(`Item index ${itemIndex} does not exist in order`);
+      throw AppError.badRequest(errorMessage.itemIndexNotFound(itemIndex));
     }
 
     order.items[itemIndex].kdsStatus = kdsStatus;
@@ -229,7 +229,7 @@ export class KDSService {
     }
 
     if (order.status !== OrderStatus.READY) {
-      throw AppError.badRequest('Can only undo tickets that were marked READY');
+      throw AppError.badRequest(errorMessage.undoReadyTicketsOnly);
     }
 
     order.status = OrderStatus.PREPARING;

@@ -1,6 +1,6 @@
-import { PrinterModel, IPrinterDocument } from './printer.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { IPrinter } from '@scan-and-dine/shared-types';
+import { PrinterModel, IPrinterDocument } from "./printer.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { IPrinter } from "@scan-and-dine/shared-types";
 
 export class PrinterService {
   static async list(venueId: string): Promise<IPrinterDocument[]> {
@@ -22,7 +22,7 @@ export class PrinterService {
       { new: true }
     );
     if (!printer) {
-      throw AppError.notFound('Printer not found');
+      throw AppError.notFound(errorMessage.notFound("Printer"));
     }
     return printer;
   }
@@ -33,7 +33,7 @@ export class PrinterService {
       { deletedAt: new Date() }
     );
     if (!printer) {
-      throw AppError.notFound('Printer not found');
+      throw AppError.notFound(errorMessage.notFound("Printer"));
     }
   }
 }

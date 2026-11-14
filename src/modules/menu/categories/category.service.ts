@@ -1,10 +1,11 @@
-import { CategoryModel, ICategoryDocument } from './category.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { CreateCategoryDTO } from '@scan-and-dine/shared-types';
+import { FilterQuery } from "mongoose";
+import { CategoryModel, ICategoryDocument } from "./category.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { CreateCategoryDTO } from "@scan-and-dine/shared-types";
 
 export class CategoryService {
   static async listCategories(venueId: string, onlyActive = false): Promise<ICategoryDocument[]> {
-    const query: any = { venueId, deletedAt: null };
+    const query: FilterQuery<ICategoryDocument> = { venueId, deletedAt: null };
     if (onlyActive) query.isActive = true;
     return CategoryModel.find(query).sort({ sortOrder: 1, createdAt: 1 });
   }
@@ -24,7 +25,7 @@ export class CategoryService {
       { new: true }
     );
     if (!category) {
-      throw AppError.notFound('Category not found');
+      throw AppError.notFound(errorMessage.notFound("Category"));
     }
     return category;
   }
@@ -35,7 +36,7 @@ export class CategoryService {
       { isActive: false, deletedAt: new Date() }
     );
     if (!category) {
-      throw AppError.notFound('Category not found');
+      throw AppError.notFound(errorMessage.notFound("Category"));
     }
   }
 }

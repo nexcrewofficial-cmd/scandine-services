@@ -1,10 +1,10 @@
-import { OrderModel } from '../orders/order.model.js';
-import { CartModel } from '../cart/cart.model.js';
-import { OrderUtils } from '../orders/order.utils.js';
-import { stripe } from '../../../config/stripe.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { OrderStatus, PaymentStatus, PaymentMethod, OrderType } from '@scan-and-dine/shared-types';
-import { publishEvent, EventChannels } from '@scan-and-dine/event-bus';
+import { OrderModel } from "../orders/order.model.js";
+import { CartModel } from "../cart/cart.model.js";
+import { OrderUtils } from "../orders/order.utils.js";
+import { stripe } from "../../../config/stripe.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { OrderStatus, PaymentStatus, PaymentMethod, OrderType } from "@scan-and-dine/shared-types";
+import { publishEvent, EventChannels } from "@scan-and-dine/event-bus";
 
 export class CheckoutService {
   // Initiates Stripe Payment Intent (Decoupled from MongoDB lock)
@@ -16,7 +16,7 @@ export class CheckoutService {
   ) {
     const cart = await CartModel.findOne({ venueId, customerUUID });
     if (!cart || cart.items.length === 0) {
-      throw AppError.badRequest('Cart is empty');
+      throw AppError.badRequest(errorMessage.cartEmpty);
     }
 
     const financials = OrderUtils.calculateFinancials(cart.items, 5, cart.discountAmount || 0);
@@ -26,12 +26,12 @@ export class CheckoutService {
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount: amountInCents,
-        currency: 'usd',
+        currency: "usd",
         automatic_payment_methods: { enabled: true },
         metadata: {
           venueId,
           customerUUID,
-          tableNumber: tableNumber || '',
+          tableNumber: tableNumber || "",
         },
       },
       idempotencyKey ? { idempotencyKey } : undefined
@@ -70,7 +70,7 @@ export class CheckoutService {
   ) {
     const cart = await CartModel.findOne({ venueId, customerUUID });
     if (!cart || cart.items.length === 0) {
-      throw AppError.badRequest('Cart is empty');
+      throw AppError.badRequest(errorMessage.cartEmpty);
     }
 
     const financials = OrderUtils.calculateFinancials(cart.items, 5, cart.discountAmount || 0);

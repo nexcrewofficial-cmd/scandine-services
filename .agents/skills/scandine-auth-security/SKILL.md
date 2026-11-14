@@ -51,6 +51,23 @@ This skill instructs agents on:
    ```
 3. **Always Hash PINs**: Staff 4-digit PINs must always be hashed using `bcrypt.hash(pin, 10)` before persistence.
 4. **Use Centralized Security Messages**: Always trigger operational errors using `return await generateAPIError(errorMessage.<key>, statusCode)` (`errorMessage.unauthorized`, `errorMessage.forbidden`, `errorMessage.invalidPin`, `errorMessage.sessionExpired`).
+5. **Strict JWT & Payload Typing (Zero `any` Rule)**:
+   - When generating or verifying JWTs, never cast options or payloads `as any`.
+   - Sign tokens using typed `SignOptions`:
+     ```typescript
+     import jwt, { SignOptions } from "jsonwebtoken";
+     import { JwtAuthPayload } from "./auth.interface.js";
+
+     const signOptions: SignOptions = {
+       expiresIn: config.jwtExpiresIn as SignOptions["expiresIn"],
+     };
+     const accessToken = jwt.sign(payload, config.jwtSecret, signOptions);
+     ```
+   - Verify and decode tokens by casting directly to `JwtAuthPayload` or `AuthenticatedUser`:
+     ```typescript
+     const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as JwtAuthPayload;
+     ```
+   - Always reuse existing domain interfaces (`JwtAuthPayload`, `AuthenticatedUser`, `UserRole`) across controllers and services instead of raw untyped `any`.
 
 ---
 

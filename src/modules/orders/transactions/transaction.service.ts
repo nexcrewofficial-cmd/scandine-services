@@ -1,35 +1,35 @@
-import { TransactionModel, ITransactionDocument } from './transaction.model.js';
-import { OrderModel } from '../orders/order.model.js';
-import { stripe } from '../../../config/stripe.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { TransactionType, TransactionStatus, PaymentStatus } from '@scan-and-dine/shared-types';
+import { TransactionModel, ITransactionDocument } from "./transaction.model.js";
+import { OrderModel } from "../orders/order.model.js";
+import { stripe } from "../../../config/stripe.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { TransactionType, TransactionStatus, PaymentStatus } from "@scan-and-dine/shared-types";
 
 export class TransactionService {
   static async list(venueId: string): Promise<ITransactionDocument[]> {
     return TransactionModel.find({ venueId, deletedAt: null })
-      .populate('orderId', 'orderNumber tableNumber orderType financials')
+      .populate("orderId", "orderNumber tableNumber orderType financials")
       .sort({ createdAt: -1 });
   }
 
   static async refundTransaction(
     venueId: string,
     transactionId: string,
-    reason?: string
+    _reason?: string
   ): Promise<ITransactionDocument> {
     const transaction = await TransactionModel.findOne({ _id: transactionId, venueId });
     if (!transaction) {
-      throw AppError.notFound('Transaction not found');
+      throw AppError.notFound(errorMessage.notFound("Transaction"));
     }
 
     if (transaction.status === TransactionStatus.FAILED) {
-      throw AppError.badRequest('Cannot refund a failed transaction');
+      throw AppError.badRequest(errorMessage.cannotRefundFailed);
     }
 
     // Process Stripe Refund if online
     if (transaction.stripeData?.paymentIntentId) {
       await stripe.refunds.create({
         payment_intent: transaction.stripeData.paymentIntentId,
-        reason: 'requested_by_customer',
+        reason: "requested_by_customer",
       });
     }
 

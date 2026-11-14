@@ -1,10 +1,10 @@
-import bcrypt from 'bcryptjs';
-import { OrderModel, IOrderDocument } from '../orders/order.model.js';
-import { CartModel } from '../cart/cart.model.js';
-import { TransactionModel } from '../transactions/transaction.model.js';
-import { UserModel } from '../../auth/users/user.model.js';
-import { MenuItemModel } from '../../menu/menu-items/menu-item.model.js';
-import { VenueModel } from '../../menu/venues/venue.model.js';
+import bcrypt from "bcryptjs";
+import { OrderModel, IOrderDocument } from "../orders/order.model.js";
+import { CartModel } from "../cart/cart.model.js";
+import { TransactionModel } from "../transactions/transaction.model.js";
+import { UserModel, IUserDocument } from "../../auth/users/user.model.js";
+import { MenuItemModel } from "../../menu/menu-items/menu-item.model.js";
+import { VenueModel } from "../../menu/venues/venue.model.js";
 import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
 import {
   OrderStatus,
@@ -15,14 +15,15 @@ import {
   TransactionType,
   TransactionStatus,
   UserRole,
-} from '@scan-and-dine/shared-types';
-import { publishEvent, EventChannels } from '../../../shared/event-bus/index.js';
+} from "@scan-and-dine/shared-types";
+import { publishEvent, EventChannels } from "../../../shared/event-bus/index.js";
 import {
   TableFloorMapItem,
   TableFloorStatus,
   ManualOrderDTO,
   VoidOrderDTO,
-} from './waiter.interface.js';
+} from "./waiter.interface.js";
+import { IOrderItem } from "../orders/order.interface.js";
 
 export class WaiterService {
   /**
@@ -72,7 +73,7 @@ export class WaiterService {
       const placedMs = order.timing.placedAt ? new Date(order.timing.placedAt).getTime() : now;
       const seatedMinutes = Math.max(0, Math.floor((now - placedMs) / (1000 * 60)));
 
-      const serverUser = order.serverStaffId as any;
+      const serverUser = order.serverStaffId as unknown as Pick<IUserDocument, "firstName" | "lastName"> | null;
       const serverStaffName = serverUser
         ? `${serverUser.firstName || ''} ${serverUser.lastName || ''}`.trim()
         : undefined;
@@ -133,7 +134,7 @@ export class WaiterService {
   ): Promise<IOrderDocument> {
     const venue = await VenueModel.findById(venueId);
     if (!venue) {
-      throw AppError.notFound('Venue not found');
+      throw AppError.notFound(errorMessage.notFound("Venue"));
     }
 
     const itemIds = dto.items.map((i) => i.menuItemId);
@@ -146,7 +147,7 @@ export class WaiterService {
     const itemMap = new Map(dbItems.map((item) => [item._id.toString(), item]));
 
     let subtotal = 0;
-    const orderItems: any[] = [];
+    const orderItems: IOrderItem[] = [];
 
     for (const inputItem of dto.items) {
       const menuItem = itemMap.get(inputItem.menuItemId);
@@ -165,7 +166,7 @@ export class WaiterService {
       subtotal += itemTotal;
 
       orderItems.push({
-        menuItemId: menuItem._id,
+        menuItemId: menuItem._id.toString(),
         name: menuItem.name,
         quantity: inputItem.quantity,
         unitPrice,
@@ -284,7 +285,7 @@ export class WaiterService {
       deletedAt: null,
     });
 
-    let approvedManager: any = null;
+    let approvedManager: IUserDocument | null = null;
     for (const mgr of managers) {
       if (mgr.pinCodeHash) {
         const isMatch = await bcrypt.compare(dto.managerPin, mgr.pinCodeHash);
@@ -307,7 +308,7 @@ export class WaiterService {
 
     order.status = OrderStatus.CANCELLED;
     order.voidReason = dto.reason;
-    order.voidApprovedBy = approvedManager._id;
+    order.voidApprovedBy = approvedManager._id.toString();
     order.deletedAt = new Date();
 
     await order.save();
@@ -362,7 +363,7 @@ export class WaiterService {
 
     if (amountReceived < order.financials.grandTotal) {
       throw AppError.badRequest(
-        `Amount received ($${amountReceived}) is less than total owed ($${order.financials.grandTotal})`
+        errorMessage.insufficientAmount(amountReceived, order.financials.grandTotal)
       );
     }
 

@@ -49,6 +49,10 @@ This skill governs:
    - **Never write `/api/v1/` inside sub-route files.**
 3. **No Manual Try/Catch in Controllers**: Every controller method must be wrapped in `errorWrapper`.
 4. **Zero Hardcoded Messages**: Always use `successMessage.<key>`, `successMessage.<builder>()`, `errorMessage.<key>`, or `errorMessage.<builder>()`.
+5. **Strict TypeScript Typing (Zero `any` Standard)**:
+   - Never use `as any` or raw untyped `any` when proper types or interfaces can be declared or reused.
+   - Always reuse existing interfaces/types (`JwtAuthPayload`, `AuthenticatedUser`, `SignOptions`, domain DTOs) from `src/shared/types` or domain `*.interface.ts`.
+   - Explicitly type third-party library options (e.g., `SignOptions["expiresIn"]`) and cast decoded payloads to verified interface structures.
 
 ---
 

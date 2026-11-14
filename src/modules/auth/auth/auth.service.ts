@@ -1,26 +1,34 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { UserModel, IUserDocument } from "../users/user.model.js";
 import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
 import { config } from "../../../config/env.js";
-import { AdminLoginDTO, StaffPinLoginDTO, AuthTokens } from "./auth.interface.js";
+import { AdminLoginDTO, StaffPinLoginDTO, AuthTokens, JwtAuthPayload } from "./auth.interface.js";
+
+interface VenuePinRateLimit {
+  attempts: number;
+  lockedUntil?: Date;
+}
 
 export class AuthService {
+  private static venuePinRateLimits = new Map<string, VenuePinRateLimit>();
   private static generateTokens(user: IUserDocument): { accessToken: string; refreshToken: string } {
-    const payload = {
+    const payload: JwtAuthPayload = {
       userId: user._id.toString(),
       venueId: user.venueId ? user.venueId.toString() : undefined,
       role: user.role,
       email: user.email,
     };
 
-    const accessToken = jwt.sign(payload, config.jwtSecret, {
-      expiresIn: config.jwtExpiresIn,
-    } as any);
+    const accessSignOptions: SignOptions = {
+      expiresIn: config.jwtExpiresIn as SignOptions["expiresIn"],
+    };
+    const accessToken = jwt.sign(payload, config.jwtSecret, accessSignOptions);
 
-    const refreshToken = jwt.sign(payload, config.jwtRefreshSecret, {
-      expiresIn: config.jwtRefreshExpiresIn,
-    } as any);
+    const refreshSignOptions: SignOptions = {
+      expiresIn: config.jwtRefreshExpiresIn as SignOptions["expiresIn"],
+    };
+    const refreshToken = jwt.sign(payload, config.jwtRefreshSecret, refreshSignOptions);
 
     return { accessToken, refreshToken };
   }
@@ -36,16 +44,15 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw AppError.forbidden("Your account is deactivated. Contact venue administrator.");
+      throw AppError.forbidden(errorMessage.accountDeactivated);
     }
 
-    // Check account lockout
     if (user.accountLockedUntil && user.accountLockedUntil > new Date()) {
-      throw AppError.forbidden("Account temporarily locked due to multiple failed login attempts.");
+      throw AppError.forbidden(errorMessage.accountLocked);
     }
 
     if (!user.passwordHash) {
-      throw AppError.unauthorized("Password not configured for this account");
+      throw AppError.unauthorized(errorMessage.passwordNotConfigured);
     }
 
     const isMatch = await bcrypt.compare(dto.password || "", user.passwordHash);
@@ -80,28 +87,97 @@ export class AuthService {
   }
 
   static async staffPinLogin(dto: StaffPinLoginDTO): Promise<AuthTokens> {
-    const staffMembers = await UserModel.find({
-      venueId: dto.venueId,
-      isActive: true,
-      deletedAt: null,
-    });
-
     let matchedStaff: IUserDocument | null = null;
 
-    for (const staff of staffMembers) {
-      if (staff.pinCodeHash) {
-        const isMatch = await bcrypt.compare(dto.pinCode, staff.pinCodeHash);
-        if (isMatch) {
-          matchedStaff = staff;
-          break;
+    if (dto.employeeId) {
+      // 1. Employee ID provided: direct user lookup with individual lock & attempt tracking
+      const staff = await UserModel.findOne({
+        venueId: dto.venueId,
+        employeeId: dto.employeeId,
+        deletedAt: null,
+      });
+
+      if (!staff) {
+        throw AppError.unauthorized(errorMessage.invalidPin);
+      }
+
+      if (!staff.isActive) {
+        throw AppError.forbidden(errorMessage.accountDeactivated);
+      }
+
+      if (staff.accountLockedUntil && staff.accountLockedUntil > new Date()) {
+        throw AppError.forbidden(errorMessage.accountLocked);
+      }
+
+      if (!staff.pinCodeHash) {
+        throw AppError.unauthorized(errorMessage.invalidPin);
+      }
+
+      const isMatch = await bcrypt.compare(dto.pinCode, staff.pinCodeHash);
+      if (!isMatch) {
+        staff.failedLoginAttempts = (staff.failedLoginAttempts || 0) + 1;
+        if (staff.failedLoginAttempts >= 5) {
+          staff.accountLockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 min lock
+        }
+        await staff.save();
+        throw AppError.unauthorized(errorMessage.invalidPin);
+      }
+
+      matchedStaff = staff;
+    } else {
+      // 2. Shared POS / KDS tablet quick PIN login: rate-limit by venue and inspect all staff
+      const rateLimitKey = dto.venueId;
+      const rateLimit = AuthService.venuePinRateLimits.get(rateLimitKey);
+
+      if (rateLimit?.lockedUntil && rateLimit.lockedUntil > new Date()) {
+        throw AppError.forbidden(errorMessage.accountLocked);
+      }
+
+      const staffMembers = await UserModel.find({
+        venueId: dto.venueId,
+        deletedAt: null,
+      });
+
+      for (const staff of staffMembers) {
+        if (staff.pinCodeHash) {
+          const isMatch = await bcrypt.compare(dto.pinCode, staff.pinCodeHash);
+          if (isMatch) {
+            matchedStaff = staff;
+            break;
+          }
         }
       }
+
+      if (!matchedStaff) {
+        const currentAttempts = (rateLimit?.attempts || 0) + 1;
+        if (currentAttempts >= 5) {
+          AuthService.venuePinRateLimits.set(rateLimitKey, {
+            attempts: currentAttempts,
+            lockedUntil: new Date(Date.now() + 15 * 60 * 1000), // 15 min lock
+          });
+        } else {
+          AuthService.venuePinRateLimits.set(rateLimitKey, {
+            attempts: currentAttempts,
+          });
+        }
+        throw AppError.unauthorized(errorMessage.invalidPin);
+      }
+
+      if (!matchedStaff.isActive) {
+        throw AppError.forbidden(errorMessage.accountDeactivated);
+      }
+
+      if (matchedStaff.accountLockedUntil && matchedStaff.accountLockedUntil > new Date()) {
+        throw AppError.forbidden(errorMessage.accountLocked);
+      }
+
+      // Reset venue-level rate limit on successful PIN match
+      AuthService.venuePinRateLimits.delete(rateLimitKey);
     }
 
-    if (!matchedStaff) {
-      throw AppError.unauthorized(errorMessage.invalidPin);
-    }
-
+    // Reset failed login attempts and unlock user on successful login
+    matchedStaff.failedLoginAttempts = 0;
+    matchedStaff.accountLockedUntil = undefined;
     matchedStaff.lastLoginAt = new Date();
     await matchedStaff.save();
 
@@ -122,23 +198,24 @@ export class AuthService {
 
   static async refresh(refreshToken: string): Promise<{ accessToken: string }> {
     try {
-      const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as any;
+      const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as JwtAuthPayload;
       const user = await UserModel.findById(decoded.userId);
 
       if (!user || !user.isActive) {
         throw AppError.unauthorized(errorMessage.notFound("User"));
       }
 
-      const payload = {
+      const payload: JwtAuthPayload = {
         userId: user._id.toString(),
         venueId: user.venueId ? user.venueId.toString() : undefined,
         role: user.role,
         email: user.email,
       };
 
-      const accessToken = jwt.sign(payload, config.jwtSecret, {
-        expiresIn: config.jwtExpiresIn,
-      } as any);
+      const accessSignOptions: SignOptions = {
+        expiresIn: config.jwtExpiresIn as SignOptions["expiresIn"],
+      };
+      const accessToken = jwt.sign(payload, config.jwtSecret, accessSignOptions);
 
       return { accessToken };
     } catch {

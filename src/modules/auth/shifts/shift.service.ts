@@ -1,7 +1,7 @@
-import { StaffShiftModel, IStaffShiftDocument } from './shift.model.js';
-import { UserModel } from '../users/user.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { ShiftStatus } from '@scan-and-dine/shared-types';
+import { StaffShiftModel, IStaffShiftDocument } from "./shift.model.js";
+import { UserModel } from "../users/user.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { ShiftStatus } from "@scan-and-dine/shared-types";
 
 export class ShiftService {
   static async clockIn(venueId: string, userId: string): Promise<IStaffShiftDocument> {
@@ -12,12 +12,12 @@ export class ShiftService {
     });
 
     if (activeShift) {
-      throw AppError.conflict('An active shift is already in progress for this staff member');
+      throw AppError.conflict(errorMessage.activeShiftInProgress);
     }
 
     const user = await UserModel.findOne({ _id: userId, venueId });
     if (!user) {
-      throw AppError.notFound('Staff user not found');
+      throw AppError.notFound(errorMessage.notFound("Staff user"));
     }
 
     const shift = await StaffShiftModel.create({
@@ -39,7 +39,7 @@ export class ShiftService {
     });
 
     if (!shift) {
-      throw AppError.notFound('No active shift found to clock out');
+      throw AppError.notFound(errorMessage.noActiveShift);
     }
 
     const now = new Date();
@@ -60,7 +60,7 @@ export class ShiftService {
 
   static async listShifts(venueId: string): Promise<IStaffShiftDocument[]> {
     return StaffShiftModel.find({ venueId, deletedAt: null })
-      .populate('userId', 'firstName lastName email role employeeId')
+      .populate("userId", "firstName lastName email role employeeId")
       .sort({ clockInTime: -1 });
   }
 }

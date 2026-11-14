@@ -1,15 +1,16 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const adminLoginSchema = z.object({
-  email: z.string().email('Valid email address required'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email("Valid email address required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export const staffPinLoginSchema = z.object({
-  venueId: z.string().min(1, 'Venue ID is required'),
-  pinCode: z.string().length(4, 'PIN must be exactly 4 digits'),
+  venueId: z.string().min(1, "Venue ID is required"),
+  pinCode: z.string().length(4, "PIN must be exactly 4 digits"),
+  employeeId: z.string().optional(),
 });
 
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1, "Refresh token is required"),
 });

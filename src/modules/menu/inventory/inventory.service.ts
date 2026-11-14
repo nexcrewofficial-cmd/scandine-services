@@ -1,6 +1,6 @@
-import { InventoryModel, IInventoryDocument } from './inventory.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { IInventory } from '@scan-and-dine/shared-types';
+import { InventoryModel, IInventoryDocument } from "./inventory.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { IInventory } from "@scan-and-dine/shared-types";
 
 export class InventoryService {
   static async list(venueId: string): Promise<IInventoryDocument[]> {
@@ -10,7 +10,7 @@ export class InventoryService {
   static async getById(venueId: string, id: string): Promise<IInventoryDocument> {
     const item = await InventoryModel.findOne({ _id: id, venueId, deletedAt: null });
     if (!item) {
-      throw AppError.notFound('Inventory item not found');
+      throw AppError.notFound(errorMessage.notFound("Inventory item"));
     }
     return item;
   }
@@ -18,7 +18,7 @@ export class InventoryService {
   static async create(venueId: string, data: Partial<IInventory>): Promise<IInventoryDocument> {
     const existing = await InventoryModel.findOne({ venueId, sku: data.sku });
     if (existing) {
-      throw AppError.conflict('An inventory item with this SKU already exists');
+      throw AppError.conflict(errorMessage.skuAlreadyExists);
     }
     return InventoryModel.create({ ...data, venueId });
   }
@@ -34,7 +34,7 @@ export class InventoryService {
       { new: true }
     );
     if (!item) {
-      throw AppError.notFound('Inventory item not found');
+      throw AppError.notFound(errorMessage.notFound("Inventory item"));
     }
     return item;
   }
@@ -45,7 +45,7 @@ export class InventoryService {
       { deletedAt: new Date() }
     );
     if (!item) {
-      throw AppError.notFound('Inventory item not found');
+      throw AppError.notFound(errorMessage.notFound("Inventory item"));
     }
   }
 }

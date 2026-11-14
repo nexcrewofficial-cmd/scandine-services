@@ -19,7 +19,10 @@ export const errorMessage = {
   alreadyCancelled: (field: string = "Order"): string => `This ${field.toLowerCase()} has already been cancelled`,
   alreadyVoided: (field: string = "Order"): string => `This ${field.toLowerCase()} has already been voided`,
   accessDenied: (field: string = "Resource"): string => `You do not have access to this ${field.toLowerCase()}`,
-  featureLocked: (feature: string = "Feature"): string => `Module locked: Feature '${feature}' is not enabled on this venue subscription plan.`,
+  featureLocked: (feature: string = "Feature"): string => `Module locked: Feature "${feature}" is not enabled on this venue subscription plan.`,
+  itemIndexNotFound: (index: number): string => `Item index ${index} does not exist in order`,
+  minOrderValueRequired: (min: number): string => `Minimum order total of $${min} required for this coupon`,
+  insufficientAmount: (received: number, owed: number): string => `Amount received ($${received}) is less than total owed ($${owed})`,
 
   // ── STATIC GENERIC & SECURITY ERRORS ──
   internalServerError: "An unexpected internal server error occurred",
@@ -40,6 +43,20 @@ export const errorMessage = {
   outsideGeofence: "You must be physically present at the venue to place an order",
   validationFailed: "Input validation failed",
   modifierRequired: "A required modifier selection is missing",
+  accountDeactivated: "Your account is deactivated. Contact venue administrator",
+  accountLocked: "Account temporarily locked due to multiple failed login attempts. Please try again later",
+  passwordNotConfigured: "Password is not configured for this account",
+  activeShiftInProgress: "An active shift is already in progress for this staff member",
+  noActiveShift: "No active shift found to clock out",
+  emailInUse: "A user with this email already exists in this venue",
+  skuAlreadyExists: "An inventory item with this SKU already exists",
+  promoCodeAlreadyExists: "A promo code with this name already exists",
+  couponExpired: "This coupon code has expired",
+  couponLimitReached: "This coupon has reached its maximum redemption limit",
+  invalidCoupon: "Invalid or expired coupon code",
+  cannotRefundFailed: "Cannot refund a failed transaction",
+  undoReadyTicketsOnly: "Can only undo tickets that were marked READY",
+  concurrencyConflict: "Concurrency conflict: Order was updated by another staff member. Please refresh.",
 } as const;
 
 export const successMessage = {

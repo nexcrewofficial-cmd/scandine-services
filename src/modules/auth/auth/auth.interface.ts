@@ -1,4 +1,4 @@
-import { UserRole } from '../users/user.enum.js';
+import { UserRole } from "../users/user.enum.js";
 
 export interface AdminLoginDTO {
   email: string;
@@ -9,6 +9,7 @@ export interface AdminLoginDTO {
 export interface StaffPinLoginDTO {
   venueId: string;
   pinCode: string;
+  employeeId?: string;
 }
 
 export interface RefreshTokenDTO {
@@ -33,6 +34,13 @@ export interface RegisterStaffDTO {
   hourlyRate?: number;
 }
 
+export interface JwtAuthPayload {
+  userId: string;
+  venueId?: string;
+  role: UserRole;
+  email: string;
+}
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -41,7 +49,7 @@ export interface AuthTokens {
     firstName: string;
     lastName: string;
     email: string;
-    role: string;
+    role: UserRole;
     venueId?: string;
   };
 }

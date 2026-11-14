@@ -64,6 +64,11 @@
      `return await generateAPIError(errorMessage.<key>, statusCode, errorCode?, data?);`
    - Logs diagnostics via `console.log(msg, statusCode, "error")` and throws structured `APIError`.
    - Never throw raw untyped JavaScript `Error` objects.
+7. **Strict TypeScript Typing (Zero `any` Standard)**:
+   - Never use `as any` or raw untyped `any` when strong typing or existing interfaces can be applied.
+   - Always reuse existing interfaces/types (e.g. `JwtAuthPayload`, `AuthenticatedUser`, `SignOptions`, domain DTOs) from `src/shared/types` or domain `*.interface.ts`.
+   - When signing JWTs, type options with `SignOptions` and cast `expiresIn` to `SignOptions["expiresIn"]`. When verifying JWTs, cast decoded tokens to their typed payload interface (`JwtAuthPayload` or `AuthenticatedUser`).
+   - Only fall back to `unknown` or `any` if a third-party library genuinely lacks types, and document the reason.
 
 ---
 

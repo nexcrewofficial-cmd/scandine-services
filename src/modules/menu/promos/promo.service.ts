@@ -1,6 +1,6 @@
-import { PromoCodeModel, IPromoCodeDocument } from './promo.model.js';
-import { AppError } from '@scan-and-dine/shared-middlewares';
-import { IPromoCode, PromoStatus } from '@scan-and-dine/shared-types';
+import { PromoCodeModel, IPromoCodeDocument } from "./promo.model.js";
+import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
+import { IPromoCode, PromoStatus } from "@scan-and-dine/shared-types";
 
 export class PromoService {
   static async list(venueId: string): Promise<IPromoCodeDocument[]> {
@@ -16,30 +16,30 @@ export class PromoService {
     });
 
     if (!promo) {
-      throw AppError.notFound('Invalid or expired coupon code');
+      throw AppError.notFound(errorMessage.invalidCoupon);
     }
 
     if (promo.validUntil && promo.validUntil < new Date()) {
-      throw AppError.badRequest('This coupon code has expired');
+      throw AppError.badRequest(errorMessage.couponExpired);
     }
 
     if (promo.criteria.minOrderValue && orderTotal < promo.criteria.minOrderValue) {
       throw AppError.badRequest(
-        `Minimum order total of $${promo.criteria.minOrderValue} required for this coupon`
+        errorMessage.minOrderValueRequired(promo.criteria.minOrderValue)
       );
     }
 
     if (promo.usage.maxTotalUses && promo.usage.currentUses >= promo.usage.maxTotalUses) {
-      throw AppError.badRequest('This coupon has reached its maximum redemption limit');
+      throw AppError.badRequest(errorMessage.couponLimitReached);
     }
 
     let discountAmount = 0;
-    if (promo.discount.type === 'PERCENTAGE') {
+    if (promo.discount.type === "PERCENTAGE") {
       discountAmount = (orderTotal * promo.discount.value) / 100;
       if (promo.discount.maxDiscountAmount) {
         discountAmount = Math.min(discountAmount, promo.discount.maxDiscountAmount);
       }
-    } else if (promo.discount.type === 'FLAT') {
+    } else if (promo.discount.type === "FLAT") {
       discountAmount = Math.min(promo.discount.value, orderTotal);
     }
 
@@ -53,7 +53,7 @@ export class PromoService {
   static async create(venueId: string, data: Partial<IPromoCode>): Promise<IPromoCodeDocument> {
     const existing = await PromoCodeModel.findOne({ venueId, code: data.code?.toUpperCase() });
     if (existing) {
-      throw AppError.conflict('A promo code with this name already exists');
+      throw AppError.conflict(errorMessage.promoCodeAlreadyExists);
     }
     return PromoCodeModel.create({ ...data, venueId });
   }
@@ -69,7 +69,7 @@ export class PromoService {
       { new: true }
     );
     if (!promo) {
-      throw AppError.notFound('Promo code not found');
+      throw AppError.notFound(errorMessage.notFound("Promo code"));
     }
     return promo;
   }
@@ -80,7 +80,7 @@ export class PromoService {
       { deletedAt: new Date(), status: PromoStatus.EXPIRED }
     );
     if (!promo) {
-      throw AppError.notFound('Promo code not found');
+      throw AppError.notFound(errorMessage.notFound("Promo code"));
     }
   }
 }
