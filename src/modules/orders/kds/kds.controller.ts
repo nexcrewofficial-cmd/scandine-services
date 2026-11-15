@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { KDSService } from './kds.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { KDSService } from "./kds.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class KDSController {
   static getTickets = asyncHandler(async (req: Request, res: Response) => {
@@ -51,7 +51,7 @@ export class KDSController {
     const data = await KDSService.undoTicketStatus(venueId, req.params.id as string);
     return responseUtils.success(res, {
       data,
-      message: 'Ticket reverted back to preparing',
+      message: "Ticket reverted back to preparing",
       status: 200,
     });
   });
@@ -63,7 +63,7 @@ export class KDSController {
 
     return responseUtils.success(res, {
       data,
-      message: 'KOT printed successfully',
+      message: "KOT printed successfully",
       status: 200,
     });
   });
@@ -71,11 +71,10 @@ export class KDSController {
   static getItemAvailability = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
     const data = await KDSService.getItemAvailability(venueId);
-    return responseUtils.success(res, {
+    return responseUtils.list(res, {
+      key: "items",
+      extraKeys: ["itemAvailability"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
     });
   });
 
@@ -87,7 +86,7 @@ export class KDSController {
     const data = await KDSService.toggleItemAvailability(venueId, id as string, isAvailable);
     return responseUtils.success(res, {
       data,
-      message: data.isAvailable ? 'Item marked in-stock' : 'Item marked out of stock',
+      message: data.isAvailable ? "Item marked in-stock" : "Item marked out of stock",
       status: 200,
     });
   });

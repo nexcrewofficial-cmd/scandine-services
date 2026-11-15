@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { OrderService } from './order.service.js';
-import { publishEvent, EventChannels } from '@scan-and-dine/event-bus';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { OrderService } from "./order.service.js";
+import { publishEvent, EventChannels } from "@scan-and-dine/event-bus";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class OrderController {
   static createOrder = asyncHandler(async (req: Request, res: Response) => {
@@ -37,12 +37,12 @@ export class OrderController {
 
   static listOrders = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await OrderService.listOrdersByVenue(venueId, req.query.status as string);
-    return responseUtils.success(res, {
+    const { data, meta } = await OrderService.listOrdersByVenue(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "orders",
+      extraKeys: ["order"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 

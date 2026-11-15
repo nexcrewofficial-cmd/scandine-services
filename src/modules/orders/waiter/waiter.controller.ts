@@ -1,27 +1,25 @@
-import { Request, Response } from 'express';
-import { WaiterService } from './waiter.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { WaiterService } from "./waiter.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class WaiterController {
   static getFloorMap = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
     const data = await WaiterService.getLiveFloorMap(venueId);
-    return responseUtils.success(res, {
+    return responseUtils.list(res, {
+      key: "floorMap",
+      extraKeys: ["tables"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
     });
   });
 
   static getMenu = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
     const data = await WaiterService.getWaiterMenu(venueId);
-    return responseUtils.success(res, {
+    return responseUtils.list(res, {
+      key: "products",
+      extraKeys: ["menu", "items"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
     });
   });
 
@@ -63,11 +61,10 @@ export class WaiterController {
   static getPayLaterQueue = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
     const data = await WaiterService.getPayLaterQueue(venueId);
-    return responseUtils.success(res, {
+    return responseUtils.list(res, {
+      key: "orders",
+      extraKeys: ["queue"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
     });
   });
 

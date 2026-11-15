@@ -1,16 +1,16 @@
-import { Request, Response } from 'express';
-import { CategoryService } from './category.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { CategoryService } from "./category.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class CategoryController {
   static list = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await CategoryService.listCategories(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await CategoryService.listCategories(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "category",
+      extraKeys: ["categories"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -43,4 +43,3 @@ export class CategoryController {
     });
   });
 }
-

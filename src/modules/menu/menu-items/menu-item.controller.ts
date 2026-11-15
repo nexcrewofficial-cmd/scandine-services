@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { MenuItemService } from './menu-item.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { MenuItemService } from "./menu-item.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class MenuItemController {
   static getPublicMenu = asyncHandler(async (req: Request, res: Response) => {
@@ -14,12 +14,12 @@ export class MenuItemController {
 
   static list = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await MenuItemService.listItems(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await MenuItemService.listItems(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "products",
+      extraKeys: ["menu", "items"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -63,7 +63,7 @@ export class MenuItemController {
     );
     return responseUtils.success(res, {
       data,
-      message: data.isAvailable ? 'Item marked in-stock' : 'Item marked out of stock',
+      message: data.isAvailable ? "Item marked in-stock" : "Item marked out of stock",
       status: 200,
     });
   });
@@ -77,4 +77,3 @@ export class MenuItemController {
     });
   });
 }
-

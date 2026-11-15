@@ -1,10 +1,55 @@
+import { FilterQuery } from "mongoose";
 import { InventoryModel, IInventoryDocument } from "./inventory.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { IInventory } from "@scan-and-dine/shared-types";
+import { IInventory, IngredientCategory, InventoryQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
+import {
+  parsePaginationQuery,
+  parseBooleanFilter,
+  escapeRegex,
+  buildPaginationMeta,
+} from "../../../shared/utils/query.util.js";
 
 export class InventoryService {
-  static async list(venueId: string): Promise<IInventoryDocument[]> {
-    return InventoryModel.find({ venueId, deletedAt: null }).sort({ name: 1 });
+  static async list(
+    venueId: string,
+    rawQuery: InventoryQueryFilters = {}
+  ): Promise<PaginatedResult<IInventoryDocument>> {
+    const { page, limit, skip, hasPaging, search, sort } = parsePaginationQuery(rawQuery, {
+      name: 1,
+    });
+
+    const query: FilterQuery<IInventoryDocument> = { venueId, deletedAt: null };
+
+    if (rawQuery.category && typeof rawQuery.category === "string") {
+      query.category = rawQuery.category as IngredientCategory;
+    }
+
+    const isActive = parseBooleanFilter(rawQuery.isActive);
+    if (isActive !== undefined) {
+      query.isActive = isActive;
+    }
+
+    const lowStock = parseBooleanFilter(rawQuery.lowStock);
+    if (lowStock === true) {
+      query.$expr = { $lte: ["$stock.current", "$stock.lowStockThreshold"] };
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      query.$or = [{ name: regex }, { sku: regex }, { "supplierInfo.name": regex }];
+    }
+
+    const total = await InventoryModel.countDocuments(query);
+    const mQuery = InventoryModel.find(query).sort(sort);
+
+    if (hasPaging) {
+      mQuery.skip(skip).limit(limit);
+    }
+
+    const data = await mQuery;
+    const meta = buildPaginationMeta(total, data.length, page, hasPaging ? limit : total || 1);
+
+    return { data, meta };
   }
 
   static async getById(venueId: string, id: string): Promise<IInventoryDocument> {

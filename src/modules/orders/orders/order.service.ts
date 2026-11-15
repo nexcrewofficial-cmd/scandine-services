@@ -2,8 +2,21 @@ import { FilterQuery } from "mongoose";
 import { OrderModel, IOrderDocument } from "./order.model.js";
 import { OrderUtils } from "./order.utils.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { CreateOrderDTO, OrderStatus, PaymentStatus, PaymentMethod } from "@scan-and-dine/shared-types";
+import {
+  CreateOrderDTO,
+  OrderStatus,
+  PaymentStatus,
+  PaymentMethod,
+  OrderType,
+  OrderQueryFilters,
+  PaginatedResult,
+} from "@scan-and-dine/shared-types";
 import { publishEvent, EventChannels } from "@scan-and-dine/event-bus";
+import {
+  parsePaginationQuery,
+  escapeRegex,
+  buildPaginationMeta,
+} from "../../../shared/utils/query.util.js";
 
 export class OrderService {
   static async createOrder(venueId: string, dto: CreateOrderDTO): Promise<IOrderDocument> {
@@ -78,10 +91,71 @@ export class OrderService {
     return order;
   }
 
-  static async listOrdersByVenue(venueId: string, status?: string): Promise<IOrderDocument[]> {
+  static async listOrdersByVenue(
+    venueId: string,
+    rawQuery: OrderQueryFilters = {}
+  ): Promise<PaginatedResult<IOrderDocument>> {
+    const { page, limit, skip, hasPaging, search, sort } = parsePaginationQuery(rawQuery, {
+      createdAt: -1,
+    });
+
     const query: FilterQuery<IOrderDocument> = { venueId, deletedAt: null };
-    if (status) query.status = status;
-    return OrderModel.find(query).sort({ createdAt: -1 });
+
+    if (rawQuery.status && typeof rawQuery.status === "string") {
+      query.status = rawQuery.status as OrderStatus;
+    }
+
+    if (rawQuery.paymentStatus && typeof rawQuery.paymentStatus === "string") {
+      query.paymentStatus = rawQuery.paymentStatus as PaymentStatus;
+    }
+
+    if (rawQuery.paymentMethod && typeof rawQuery.paymentMethod === "string") {
+      query.paymentMethod = rawQuery.paymentMethod as PaymentMethod;
+    }
+
+    if (rawQuery.orderType && typeof rawQuery.orderType === "string") {
+      query.orderType = rawQuery.orderType as OrderType;
+    }
+
+    if (rawQuery.tableNumber && typeof rawQuery.tableNumber === "string") {
+      query.tableNumber = rawQuery.tableNumber;
+    }
+
+    if (rawQuery.customerUUID && typeof rawQuery.customerUUID === "string") {
+      query.customerUUID = rawQuery.customerUUID;
+    }
+
+    if (rawQuery.startDate || rawQuery.endDate) {
+      const dateFilter: Record<string, Date> = {};
+      if (rawQuery.startDate) {
+        const d = new Date(rawQuery.startDate as string);
+        if (!isNaN(d.getTime())) dateFilter.$gte = d;
+      }
+      if (rawQuery.endDate) {
+        const d = new Date(rawQuery.endDate as string);
+        if (!isNaN(d.getTime())) dateFilter.$lte = d;
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        query.createdAt = dateFilter;
+      }
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      query.$or = [{ orderNumber: regex }, { tableNumber: regex }, { notes: regex }];
+    }
+
+    const total = await OrderModel.countDocuments(query);
+    const mQuery = OrderModel.find(query).sort(sort);
+
+    if (hasPaging) {
+      mQuery.skip(skip).limit(limit);
+    }
+
+    const data = await mQuery;
+    const meta = buildPaginationMeta(total, data.length, page, hasPaging ? limit : total || 1);
+
+    return { data, meta };
   }
 
   static async getOrdersByCustomer(customerUUID: string): Promise<IOrderDocument[]> {

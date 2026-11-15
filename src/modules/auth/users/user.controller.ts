@@ -1,16 +1,16 @@
-import { Request, Response } from 'express';
-import { UserService } from './user.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { UserService } from "./user.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class UserController {
   static listStaff = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await UserService.getStaffByVenue(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await UserService.getStaffByVenue(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "staff",
+      extraKeys: ["users"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -53,4 +53,3 @@ export class UserController {
     });
   });
 }
-

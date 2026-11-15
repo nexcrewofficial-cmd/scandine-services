@@ -1,13 +1,47 @@
 import { FilterQuery } from "mongoose";
 import { CategoryModel, ICategoryDocument } from "./category.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { CreateCategoryDTO } from "@scan-and-dine/shared-types";
+import { CreateCategoryDTO, CategoryQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
+import {
+  parsePaginationQuery,
+  parseBooleanFilter,
+  escapeRegex,
+  buildPaginationMeta,
+} from "../../../shared/utils/query.util.js";
 
 export class CategoryService {
-  static async listCategories(venueId: string, onlyActive = false): Promise<ICategoryDocument[]> {
+  static async listCategories(
+    venueId: string,
+    rawQuery: CategoryQueryFilters = {}
+  ): Promise<PaginatedResult<ICategoryDocument>> {
+    const { page, limit, skip, hasPaging, search, sort } = parsePaginationQuery(rawQuery, {
+      sortOrder: 1,
+      createdAt: 1,
+    });
+
     const query: FilterQuery<ICategoryDocument> = { venueId, deletedAt: null };
-    if (onlyActive) query.isActive = true;
-    return CategoryModel.find(query).sort({ sortOrder: 1, createdAt: 1 });
+
+    const isActive = parseBooleanFilter(rawQuery.isActive ?? (rawQuery.onlyActive ? true : undefined));
+    if (isActive !== undefined) {
+      query.isActive = isActive;
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      query.$or = [{ name: regex }, { description: regex }];
+    }
+
+    const total = await CategoryModel.countDocuments(query);
+    const mQuery = CategoryModel.find(query).sort(sort);
+
+    if (hasPaging) {
+      mQuery.skip(skip).limit(limit);
+    }
+
+    const data = await mQuery;
+    const meta = buildPaginationMeta(total, data.length, page, hasPaging ? limit : total || 1);
+
+    return { data, meta };
   }
 
   static async createCategory(venueId: string, dto: CreateCategoryDTO): Promise<ICategoryDocument> {

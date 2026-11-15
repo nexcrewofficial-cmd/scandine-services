@@ -1,16 +1,16 @@
-import { Request, Response } from 'express';
-import { PrinterService } from './printer.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { PrinterService } from "./printer.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class PrinterController {
   static list = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await PrinterService.list(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await PrinterService.list(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "printers",
+      extraKeys: ["printer"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -43,4 +43,3 @@ export class PrinterController {
     });
   });
 }
-

@@ -1,16 +1,16 @@
-import { Request, Response } from 'express';
-import { InventoryService } from './inventory.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { InventoryService } from "./inventory.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class InventoryController {
   static list = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await InventoryService.list(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await InventoryService.list(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "inventory",
+      extraKeys: ["inventoryItems"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -53,4 +53,3 @@ export class InventoryController {
     });
   });
 }
-

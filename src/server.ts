@@ -12,12 +12,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import swaggerUi from 'swagger-ui-express';
 import { config } from './config/env.js';
-import { logger } from "./shared/logger/index.js";
-import { errorHandler } from './shared/middlewares/index.js';
-import { authRoutes } from './modules/auth/routes.js';
-import { menuRoutes } from './modules/menu/routes.js';
-import { orderRoutes } from './modules/orders/routes.js';
-import { initWebSockets } from './modules/websockets/socket-server.js';
+import { logger, requestLogger } from "./shared/logger/index.js";
+import { errorHandler } from "./shared/middlewares/index.js";
+import { authRoutes } from "./modules/auth/routes.js";
+import { menuRoutes } from "./modules/menu/routes.js";
+import { orderRoutes } from "./modules/orders/routes.js";
+import { initWebSockets } from "./modules/websockets/socket-server.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -27,10 +27,14 @@ const __dirname = path.dirname(__filename);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   cors({
-    origin: (origin, callback) => callback(null, true),
+    origin: (origin, callback) => {
+      console.log(`${origin} origin`);
+      callback(null, true);
+    },
     credentials: true,
   })
 );
+app.use(requestLogger);
 app.use(express.json());
 
 // Health Check

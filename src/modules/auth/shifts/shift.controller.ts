@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { ShiftService } from './shift.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { ShiftService } from "./shift.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class ShiftController {
   static clockIn = asyncHandler(async (req: Request, res: Response) => {
@@ -27,13 +27,12 @@ export class ShiftController {
 
   static listShifts = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await ShiftService.listShifts(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await ShiftService.listShifts(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "shifts",
+      extraKeys: ["shift"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 }
-

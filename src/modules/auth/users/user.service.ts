@@ -1,11 +1,69 @@
+import { FilterQuery } from "mongoose";
 import bcrypt from "bcryptjs";
 import { UserModel, IUserDocument } from "./user.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { RegisterStaffDTO } from "@scan-and-dine/shared-types";
+import {
+  RegisterStaffDTO,
+  UserRole,
+  EmploymentType,
+  StaffQueryFilters,
+  PaginatedResult,
+} from "@scan-and-dine/shared-types";
+import {
+  parsePaginationQuery,
+  parseBooleanFilter,
+  escapeRegex,
+  buildPaginationMeta,
+} from "../../../shared/utils/query.util.js";
 
 export class UserService {
-  static async getStaffByVenue(venueId: string): Promise<IUserDocument[]> {
-    return UserModel.find({ venueId, deletedAt: null }).select("-passwordHash -pinCodeHash");
+  static async getStaffByVenue(
+    venueId: string,
+    rawQuery: StaffQueryFilters = {}
+  ): Promise<PaginatedResult<IUserDocument>> {
+    const { page, limit, skip, hasPaging, search, sort } = parsePaginationQuery(rawQuery, {
+      createdAt: -1,
+    });
+
+    const query: FilterQuery<IUserDocument> = { venueId, deletedAt: null };
+
+    if (rawQuery.role && typeof rawQuery.role === "string") {
+      query.role = rawQuery.role as UserRole;
+    }
+
+    if (rawQuery.employmentType && typeof rawQuery.employmentType === "string") {
+      query.employmentType = rawQuery.employmentType as EmploymentType;
+    }
+
+    const isActive = parseBooleanFilter(rawQuery.isActive);
+    if (isActive !== undefined) {
+      query.isActive = isActive;
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      query.$or = [
+        { firstName: regex },
+        { lastName: regex },
+        { email: regex },
+        { phoneNumber: regex },
+        { employeeId: regex },
+      ];
+    }
+
+    const total = await UserModel.countDocuments(query);
+    const mQuery = UserModel.find(query)
+      .select("-passwordHash -pinCodeHash")
+      .sort(sort);
+
+    if (hasPaging) {
+      mQuery.skip(skip).limit(limit);
+    }
+
+    const data = await mQuery;
+    const meta = buildPaginationMeta(total, data.length, page, hasPaging ? limit : total || 1);
+
+    return { data, meta };
   }
 
   static async getStaffById(venueId: string, userId: string): Promise<IUserDocument> {

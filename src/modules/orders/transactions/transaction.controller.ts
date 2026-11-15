@@ -1,16 +1,16 @@
-import { Request, Response } from 'express';
-import { TransactionService } from './transaction.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { TransactionService } from "./transaction.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class TransactionController {
   static list = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await TransactionService.list(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await TransactionService.list(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "transactions",
+      extraKeys: ["transaction"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -28,4 +28,3 @@ export class TransactionController {
     });
   });
 }
-

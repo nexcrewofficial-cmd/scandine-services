@@ -1,10 +1,48 @@
+import { FilterQuery } from "mongoose";
 import { PromoCodeModel, IPromoCodeDocument } from "./promo.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { IPromoCode, PromoStatus } from "@scan-and-dine/shared-types";
+import { IPromoCode, PromoStatus, DiscountType, PromoQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
+import {
+  parsePaginationQuery,
+  escapeRegex,
+  buildPaginationMeta,
+} from "../../../shared/utils/query.util.js";
 
 export class PromoService {
-  static async list(venueId: string): Promise<IPromoCodeDocument[]> {
-    return PromoCodeModel.find({ venueId, deletedAt: null }).sort({ createdAt: -1 });
+  static async list(
+    venueId: string,
+    rawQuery: PromoQueryFilters = {}
+  ): Promise<PaginatedResult<IPromoCodeDocument>> {
+    const { page, limit, skip, hasPaging, search, sort } = parsePaginationQuery(rawQuery, {
+      createdAt: -1,
+    });
+
+    const query: FilterQuery<IPromoCodeDocument> = { venueId, deletedAt: null };
+
+    if (rawQuery.status && typeof rawQuery.status === "string") {
+      query.status = rawQuery.status as PromoStatus;
+    }
+
+    if (rawQuery.discountType && typeof rawQuery.discountType === "string") {
+      query["discount.type"] = rawQuery.discountType as DiscountType;
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      query.$or = [{ code: regex }, { campaignName: regex }];
+    }
+
+    const total = await PromoCodeModel.countDocuments(query);
+    const mQuery = PromoCodeModel.find(query).sort(sort);
+
+    if (hasPaging) {
+      mQuery.skip(skip).limit(limit);
+    }
+
+    const data = await mQuery;
+    const meta = buildPaginationMeta(total, data.length, page, hasPaging ? limit : total || 1);
+
+    return { data, meta };
   }
 
   static async validateAndApply(venueId: string, code: string, orderTotal: number) {
@@ -51,11 +89,18 @@ export class PromoService {
   }
 
   static async create(venueId: string, data: Partial<IPromoCode>): Promise<IPromoCodeDocument> {
-    const existing = await PromoCodeModel.findOne({ venueId, code: data.code?.toUpperCase() });
+    const existing = await PromoCodeModel.findOne({
+      venueId,
+      code: data.code?.toUpperCase(),
+    });
     if (existing) {
-      throw AppError.conflict(errorMessage.promoCodeAlreadyExists);
+      throw AppError.conflict(errorMessage.alreadyExists("Promo code"));
     }
-    return PromoCodeModel.create({ ...data, venueId });
+    return PromoCodeModel.create({
+      ...data,
+      venueId,
+      code: data.code?.toUpperCase(),
+    });
   }
 
   static async update(
@@ -77,7 +122,7 @@ export class PromoService {
   static async delete(venueId: string, id: string): Promise<void> {
     const promo = await PromoCodeModel.findOneAndUpdate(
       { _id: id, venueId },
-      { deletedAt: new Date(), status: PromoStatus.EXPIRED }
+      { deletedAt: new Date() }
     );
     if (!promo) {
       throw AppError.notFound(errorMessage.notFound("Promo code"));

@@ -1,16 +1,16 @@
-import { Request, Response } from 'express';
-import { PromoService } from './promo.service.js';
-import { asyncHandler, responseUtils, successMessage } from '../../../shared/middlewares/index.js';
+import { Request, Response } from "express";
+import { PromoService } from "./promo.service.js";
+import { asyncHandler, responseUtils, successMessage } from "../../../shared/middlewares/index.js";
 
 export class PromoController {
   static list = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await PromoService.list(venueId);
-    return responseUtils.success(res, {
+    const { data, meta } = await PromoService.list(venueId, req.query);
+    return responseUtils.list(res, {
+      key: "promos",
+      extraKeys: ["promo"],
       data,
-      message: successMessage.dataFetched,
-      status: 200,
-      meta: { count: data.length },
+      meta,
     });
   });
 
@@ -54,4 +54,3 @@ export class PromoController {
     });
   });
 }
-
