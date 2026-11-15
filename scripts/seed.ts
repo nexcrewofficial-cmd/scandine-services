@@ -1,6 +1,9 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
+import dns from "node:dns";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 dotenv.config();
 
 import { UserModel } from '../src/modules/auth/users/user.model.js';

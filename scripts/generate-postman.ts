@@ -5,6 +5,9 @@ import Converter from 'openapi-to-postmanv2';
 const openapiPath = path.join(process.cwd(), 'src', 'docs', 'openapi.json');
 const outputPath = path.join(process.cwd(), 'postman_collection.json');
 
+// Brain artifact directory for sharing with frontend developers
+const artifactDir = 'C:/Users/Lenovo/.gemini/antigravity/brain/dd4a65ff-e19b-4f87-a697-eb60692a7dbf';
+
 if (!fs.existsSync(openapiPath)) {
   console.error(`❌ OpenAPI file not found at: ${openapiPath}`);
   process.exit(1);
@@ -52,6 +55,7 @@ function injectAutoAuthScripts(items: any[]) {
                 '    if (token) {',
                 '        pm.collectionVariables.set("adminToken", token);',
                 '        pm.collectionVariables.set("bearerToken", token);',
+                '        console.log("✅ Admin token set in collection variables");',
                 '    }',
                 '}',
               ],
@@ -87,6 +91,7 @@ function injectAutoAuthScripts(items: any[]) {
                 '    if (token) {',
                 '        pm.collectionVariables.set("staffToken", token);',
                 '        pm.collectionVariables.set("bearerToken", token);',
+                '        console.log("✅ Staff token set in collection variables");',
                 '    }',
                 '}',
               ],
@@ -96,6 +101,162 @@ function injectAutoAuthScripts(items: any[]) {
       }
     }
   }
+}
+
+function organizeCollectionByModule(tagFolders: any[]) {
+  const folderMap = new Map<string, any>();
+  for (const folder of tagFolders) {
+    folderMap.set(folder.name, folder);
+  }
+
+  const getFolder = (name: string) => folderMap.get(name);
+
+  // 0. Common & System APIs
+  const systemFolder = getFolder('System') || { name: 'System', item: [] };
+  const webhookFolder = getFolder('Webhooks') || { name: 'Webhooks', item: [] };
+  const authFolder = getFolder('Authentication') || { name: 'Authentication', item: [] };
+
+  const commonAuthRequests = (authFolder.item || []).filter((reqItem: any) => {
+    const urlPath = (reqItem.request?.url?.path || []).join('/');
+    return urlPath.includes('refresh') || urlPath.includes('logout');
+  });
+
+  const commonItems = [
+    systemFolder,
+    {
+      name: 'Common Authentication',
+      description: 'JWT Token Refresh and Session Revocation for all user roles',
+      item: commonAuthRequests,
+    },
+    webhookFolder,
+  ];
+
+  const commonModuleFolder = {
+    name: '0. Common & System',
+    description: 'Shared platform APIs: Gateway health check, JWT session renewal, user sign-out, and Stripe webhooks.',
+    item: commonItems,
+  };
+
+  // 1. Admin Module
+  const adminAuthRequests = (authFolder.item || []).filter((reqItem: any) => {
+    const urlPath = (reqItem.request?.url?.path || []).join('/');
+    return urlPath.includes('admin/login');
+  });
+
+  const staffShiftsFolder = getFolder('Staff Shifts') || { name: 'Staff Shifts', item: [] };
+  const adminShiftRequests = (staffShiftsFolder.item || []).filter((reqItem: any) => {
+    return reqItem.request?.method === 'GET';
+  });
+
+  const promosFolder = getFolder('Promotions') || { name: 'Promotions', item: [] };
+  const adminPromoRequests = (promosFolder.item || []).filter((reqItem: any) => {
+    const urlPath = (reqItem.request?.url?.path || []).join('/');
+    return !urlPath.includes('validate');
+  });
+
+  const adminItems = [
+    {
+      name: 'Admin Authentication',
+      description: 'Admin Email & Password Login',
+      item: adminAuthRequests,
+    },
+    getFolder('Staff Management'),
+    {
+      name: 'Staff Shifts & Payroll',
+      description: 'Timesheets and Payroll Hours',
+      item: adminShiftRequests,
+    },
+    getFolder('Venue Admin'),
+    getFolder('Menu Management'),
+    getFolder('Inventory'),
+    {
+      name: 'Promotions & Discounts',
+      description: 'Promo code campaign configuration',
+      item: adminPromoRequests,
+    },
+    getFolder('Finance & Transactions'),
+  ].filter(Boolean);
+
+  const adminModuleFolder = {
+    name: '1. Admin Module',
+    description: 'Administrative Portal: Staff management, payroll timesheets, venue profile, menu catalogs, inventory, promos, and financial audit logs.',
+    item: adminItems,
+  };
+
+  // 2. Customer & User Module
+  const customerPromoRequests = (promosFolder.item || []).filter((reqItem: any) => {
+    const urlPath = (reqItem.request?.url?.path || []).join('/');
+    return urlPath.includes('validate');
+  });
+
+  const customerItems = [
+    getFolder('Customer Web'),
+    {
+      name: 'Cart & Checkout',
+      item: getFolder('Cart & Ordering')?.item || [],
+    },
+    {
+      name: 'Coupon Validation',
+      item: customerPromoRequests,
+    },
+    getFolder('Orders'),
+  ].filter(Boolean);
+
+  const customerModuleFolder = {
+    name: '2. Customer & User Module',
+    description: 'Customer Web & QR Ordering: Device registration, favorites, public menu, cart sync, checkout (Stripe/cash), and order tracking.',
+    item: customerItems,
+  };
+
+  // 3. Waiter POS Module
+  const waiterAuthRequests = (authFolder.item || []).filter((reqItem: any) => {
+    const urlPath = (reqItem.request?.url?.path || []).join('/');
+    return urlPath.includes('staff/login');
+  });
+
+  const waiterShiftRequests = (staffShiftsFolder.item || []).filter((reqItem: any) => {
+    return reqItem.request?.method === 'POST';
+  });
+
+  const waiterItems = [
+    {
+      name: 'Waiter Authentication',
+      description: '4-Digit POS PIN Quick Login',
+      item: waiterAuthRequests,
+    },
+    {
+      name: 'Shift Clock In / Out',
+      description: 'Staff shift time tracking',
+      item: waiterShiftRequests,
+    },
+    getFolder('Waiter & Floor Staff'),
+  ].filter(Boolean);
+
+  const waiterModuleFolder = {
+    name: '3. Waiter POS Module',
+    description: 'Waitstaff POS & Table Operations: Floor map color status, manual order punch, food delivery, manager PIN void, and cash collection.',
+    item: waiterItems,
+  };
+
+  // 4. Kitchen Display System (KDS) Module
+  const kdsModuleFolder = {
+    name: '4. Kitchen Display System (KDS) Module',
+    description: 'Kitchen display screens, station routing, SLA timers, ticket progression, ESC/POS thermal KOT print slip, and quick stock 86-ing.',
+    item: getFolder('KDS & Kitchen')?.item || [],
+  };
+
+  const moduleFolders = [
+    commonModuleFolder,
+    adminModuleFolder,
+    customerModuleFolder,
+    waiterModuleFolder,
+    kdsModuleFolder,
+  ];
+
+  return {
+    moduleFolders,
+    commonItems,
+  };
 }
 
 Converter.convert(
@@ -115,7 +276,7 @@ Converter.convert(
     const collection = result.output[0].data;
 
     // Enhance collection with standard variables for Scan & Dine
-    collection.variable = [
+    const standardVariables = [
       { key: 'baseUrl', value: 'http://localhost:8080', type: 'string' },
       { key: 'bearerToken', value: '', type: 'string' },
       { key: 'adminToken', value: '', type: 'string' },
@@ -131,14 +292,26 @@ Converter.convert(
       { key: 'deviceUUID', value: 'device_uuid_test_123', type: 'string' },
     ];
 
+    collection.variable = standardVariables;
+
     // Inject automated token saving test scripts
     if (collection.item) {
       injectAutoAuthScripts(collection.item);
-    }
 
-    // Write local postman_collection.json
-    fs.writeFileSync(outputPath, JSON.stringify(collection, null, 2), 'utf8');
-    console.log(`\n🎉 Success! Postman collection generated at:\n   ${outputPath}`);
+      // Reorganize into clean module-wise folders
+      const { moduleFolders, commonItems } = organizeCollectionByModule(collection.item);
+      collection.item = moduleFolders;
+
+      // 1. Write the full module-wise postman_collection.json
+      fs.writeFileSync(outputPath, JSON.stringify(collection, null, 2), 'utf8');
+      console.log(`\n🎉 Success! Module-wise Postman collection generated at:\n   ${outputPath}`);
+
+      // 2. Mirror master collection to Antigravity brain artifact directory for frontend developer sharing
+      if (fs.existsSync(artifactDir)) {
+        fs.writeFileSync(path.join(artifactDir, 'postman_collection.json'), JSON.stringify(collection, null, 2), 'utf8');
+        console.log(`🎉 Success! Mirrored collection to Antigravity artifact directory:\n   ${artifactDir}`);
+      }
+    }
 
     // If Postman Cloud API credentials exist, sync automatically to Postman workspace
     const apiKey = process.env.POSTMAN_API_KEY;

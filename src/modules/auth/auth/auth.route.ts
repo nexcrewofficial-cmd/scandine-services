@@ -8,6 +8,7 @@ const router = Router();
 router.post("/admin/login", validateRequest({ body: adminLoginSchema }), AuthController.adminLogin);
 router.post("/staff/login", validateRequest({ body: staffPinLoginSchema }), AuthController.staffPinLogin);
 router.post("/refresh-token", validateRequest({ body: refreshTokenSchema }), AuthController.refreshToken);
+router.post("/refresh", validateRequest({ body: refreshTokenSchema }), AuthController.refreshToken);
 router.post("/logout", AuthController.logout);
 
 export const authRouter = router;

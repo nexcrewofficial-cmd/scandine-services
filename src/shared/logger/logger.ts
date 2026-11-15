@@ -1,23 +1,29 @@
-import pino from 'pino';
-
-const isProduction = process.env.NODE_ENV === 'production';
-
-export const logger = pino({
-  level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
-  transport: !isProduction
-    ? {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-        },
-      }
-    : undefined,
-  base: {
-    service: process.env.SERVICE_NAME || 'scan-and-dine',
+/**
+ * Clean native console logger (Pino completely removed)
+ */
+export const logger = {
+  info: (message: any, ...optionalParams: any[]): void => {
+    if (typeof message === "string") {
+      console.log(message, ...optionalParams);
+    } else {
+      console.log(...optionalParams, message);
+    }
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
-});
+  warn: (message: any, ...optionalParams: any[]): void => {
+    if (typeof message === "string") {
+      console.warn(message, ...optionalParams);
+    } else {
+      console.warn(...optionalParams, message);
+    }
+  },
+  error: (message: any, ...optionalParams: any[]): void => {
+    if (typeof message === "string") {
+      console.error(message, ...optionalParams);
+    } else {
+      console.error(...optionalParams, message);
+    }
+  },
+  debug: (_message: any, ..._optionalParams: any[]): void => {},
+};
 
 export type Logger = typeof logger;

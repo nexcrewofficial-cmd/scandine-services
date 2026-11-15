@@ -40,15 +40,11 @@ export const initWebSockets = (server: http.Server): Server => {
       subClient.connect().then(() => {
         if (io) {
           io.adapter(createAdapter(pubClient, subClient));
-          logger.info('Socket.io Redis adapter initialized');
+          console.log("Connected to Redis 🚀");
         }
       });
-    }).catch(() => {
-      logger.info('Socket.io running in local in-memory mode (Redis offline)');
-    });
-  } catch (err) {
-    logger.info('Socket.io running in local in-memory mode');
-  }
+    }).catch(() => {});
+  } catch (err) {}
 
   // Client Connection Handling & Room Joining
   io.on('connection', (socket: Socket) => {
