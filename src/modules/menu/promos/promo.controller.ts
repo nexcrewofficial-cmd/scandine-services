@@ -8,7 +8,6 @@ export class PromoController {
     const { data, meta } = await PromoService.list(venueId, req.query);
     return responseUtils.list(res, {
       key: "promos",
-      extraKeys: ["promo"],
       data,
       meta,
     });

@@ -1,0 +1,970 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scan & Dine API Documentation - User, Waiter & KDS Modules",
+  "version": "1.0.0",
+  "description": "Module-based comprehensive API specification containing exact endpoints, headers, payloads, and response envelopes formatted to the updated Scan & Dine standard.",
+  "globalHeaders": {
+    "Content-Type": "application/json",
+    "x-venue-id": "6af35497ae8e876a3604381d",
+    "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+  },
+  "modules": {
+    "userModule": {
+      "moduleName": "User & Staff Management Module",
+      "description": "Handles authentication, staff management (onboarding, updating, deactivating), and shift clock-in/out.",
+      "endpoints": [
+        {
+          "name": "Admin / Manager Login",
+          "method": "POST",
+          "endpoint": "/api/v1/auth/admin/login",
+          "authRequired": false,
+          "rolesAllowed": ["PUBLIC"],
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "requestPayload": {
+            "email": "manager@pizzapalace.com",
+            "password": "Password123!"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Login successful",
+              "data": {
+                "user": {
+                  "id": "6735e128ae8e876a3604381f",
+                  "email": "manager@pizzapalace.com",
+                  "firstName": "Alex",
+                  "lastName": "Rivera",
+                  "role": "MANAGER",
+                  "venueId": "6af35497ae8e876a3604381d"
+                },
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              }
+            }
+          },
+          "errorResponses": [
+            {
+              "status": 401,
+              "body": {
+                "success": false,
+                "message": "Invalid email or password"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Staff PIN Login (Waiter & Kitchen)",
+          "method": "POST",
+          "endpoint": "/api/v1/auth/staff/login",
+          "authRequired": false,
+          "rolesAllowed": ["PUBLIC"],
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "requestPayload": {
+            "venueId": "6af35497ae8e876a3604381d",
+            "pinCode": "1234"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Login successful",
+              "data": {
+                "user": {
+                  "id": "6735e142ae8e876a36043820",
+                  "firstName": "John",
+                  "lastName": "Doe",
+                  "role": "WAITER",
+                  "venueId": "6af35497ae8e876a3604381d"
+                },
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              }
+            }
+          },
+          "errorResponses": [
+            {
+              "status": 401,
+              "body": {
+                "success": false,
+                "message": "Invalid staff PIN"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "method": "POST",
+          "endpoint": "/api/v1/auth/refresh",
+          "authRequired": false,
+          "rolesAllowed": ["PUBLIC"],
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "requestPayload": {
+            "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Token refreshed successfully",
+              "data": {
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              }
+            }
+          }
+        },
+        {
+          "name": "Staff Logout",
+          "method": "POST",
+          "endpoint": "/api/v1/auth/logout",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER", "WAITER", "KITCHEN_STAFF"],
+          "headers": {
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Logout successful"
+            }
+          }
+        },
+        {
+          "name": "List Staff Members",
+          "method": "GET",
+          "endpoint": "/api/v1/admin/staff",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "queryParams": {
+            "role": "WAITER",
+            "page": 1,
+            "limit": 20
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "staff": [
+                  {
+                    "_id": "6735e142ae8e876a36043820",
+                    "firstName": "John",
+                    "lastName": "Doe",
+                    "email": "waiter.john@pizzapalace.com",
+                    "phoneNumber": "+15551234567",
+                    "role": "WAITER",
+                    "employmentType": "FULL_TIME",
+                    "hourlyRate": 18.5,
+                    "isActive": true,
+                    "venueId": "6af35497ae8e876a3604381d",
+                    "createdAt": "2026-11-15T09:30:00.000Z"
+                  }
+                ],
+                "totalCount": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Staff Member Details",
+          "method": "GET",
+          "endpoint": "/api/v1/admin/staff/:id",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Data fetched successfully",
+              "data": {
+                "_id": "6735e142ae8e876a36043820",
+                "firstName": "John",
+                "lastName": "Doe",
+                "email": "waiter.john@pizzapalace.com",
+                "phoneNumber": "+15551234567",
+                "role": "WAITER",
+                "employmentType": "FULL_TIME",
+                "hourlyRate": 18.5,
+                "isActive": true,
+                "venueId": "6af35497ae8e876a3604381d"
+              }
+            }
+          }
+        },
+        {
+          "name": "Onboard / Create Staff Member",
+          "method": "POST",
+          "endpoint": "/api/v1/admin/staff",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "firstName": "Elena",
+            "lastName": "Rostova",
+            "email": "chef.elena@pizzapalace.com",
+            "phoneNumber": "+15559876543",
+            "pinCode": "4321",
+            "role": "KITCHEN_STAFF",
+            "employmentType": "FULL_TIME",
+            "hourlyRate": 22.0
+          },
+          "responsePayload": {
+            "status": 201,
+            "body": {
+              "success": true,
+              "message": "Resource created successfully",
+              "data": {
+                "_id": "6735e17dae8e876a36043822",
+                "firstName": "Elena",
+                "lastName": "Rostova",
+                "email": "chef.elena@pizzapalace.com",
+                "phoneNumber": "+15559876543",
+                "role": "KITCHEN_STAFF",
+                "employmentType": "FULL_TIME",
+                "hourlyRate": 22.0,
+                "isActive": true,
+                "venueId": "6af35497ae8e876a3604381d"
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Staff Member",
+          "method": "PUT",
+          "endpoint": "/api/v1/admin/staff/:id",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "hourlyRate": 24.5,
+            "phoneNumber": "+15559998877"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Resource updated successfully",
+              "data": {
+                "_id": "6735e17dae8e876a36043822",
+                "firstName": "Elena",
+                "lastName": "Rostova",
+                "role": "KITCHEN_STAFF",
+                "hourlyRate": 24.5,
+                "phoneNumber": "+15559998877"
+              }
+            }
+          }
+        },
+        {
+          "name": "Deactivate Staff Member",
+          "method": "DELETE",
+          "endpoint": "/api/v1/admin/staff/:id",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Resource deleted successfully"
+            }
+          }
+        },
+        {
+          "name": "Staff Clock-In",
+          "method": "POST",
+          "endpoint": "/api/v1/shifts/clock-in",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER", "WAITER", "KITCHEN_STAFF"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "latitude": 40.7128,
+            "longitude": -74.0060,
+            "startingCash": 150.0
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Clocked in successfully",
+              "data": {
+                "_id": "6735e201ae8e876a36043825",
+                "venueId": "6af35497ae8e876a3604381d",
+                "userId": "6735e142ae8e876a36043820",
+                "clockInTime": "2026-11-15T10:00:00.000Z",
+                "status": "OPEN",
+                "startingCash": 150.0
+              }
+            }
+          }
+        },
+        {
+          "name": "Staff Clock-Out",
+          "method": "POST",
+          "endpoint": "/api/v1/shifts/clock-out",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER", "WAITER", "KITCHEN_STAFF"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "endingCash": 485.5,
+            "closingNotes": "Cash drawer balanced accurately with cash collected."
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Clocked out successfully",
+              "data": {
+                "_id": "6735e201ae8e876a36043825",
+                "clockInTime": "2026-11-15T10:00:00.000Z",
+                "clockOutTime": "2026-11-15T18:00:00.000Z",
+                "totalHours": 8.0,
+                "status": "CLOSED",
+                "endingCash": 485.5
+              }
+            }
+          }
+        },
+        {
+          "name": "List Staff Shifts / Payroll",
+          "method": "GET",
+          "endpoint": "/api/v1/shifts",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "shifts": [
+                  {
+                    "_id": "6735e201ae8e876a36043825",
+                    "userId": {
+                      "_id": "6735e142ae8e876a36043820",
+                      "firstName": "John",
+                      "lastName": "Doe"
+                    },
+                    "clockInTime": "2026-11-15T10:00:00.000Z",
+                    "clockOutTime": "2026-11-15T18:00:00.000Z",
+                    "totalHours": 8.0,
+                    "status": "CLOSED"
+                  }
+                ],
+                "totalCount": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "waiterModule": {
+      "moduleName": "Waiter Mobile POS Module",
+      "description": "Powers the Waiter Handheld POS application: Floor table map, menu catalog, punching orders, serving, cash collection, and thermal bill prints.",
+      "endpoints": [
+        {
+          "name": "Get Live Floor Map",
+          "method": "GET",
+          "endpoint": "/api/v1/waiter/tables",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "tables": [
+                  {
+                    "tableNumber": "T-01",
+                    "capacity": 4,
+                    "status": "OCCUPIED",
+                    "activeOrderId": "6735e3a0ae8e876a36043830",
+                    "orderTotal": 65.5,
+                    "elapsedMinutes": 24,
+                    "assignedWaiter": "John Doe",
+                    "needsAttention": false
+                  },
+                  {
+                    "tableNumber": "T-02",
+                    "capacity": 2,
+                    "status": "AVAILABLE",
+                    "activeOrderId": null,
+                    "orderTotal": 0,
+                    "elapsedMinutes": 0,
+                    "assignedWaiter": null,
+                    "needsAttention": false
+                  }
+                ],
+                "totalCount": 2
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Waiter Menu Catalog",
+          "method": "GET",
+          "endpoint": "/api/v1/waiter/menu",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "products": [
+                  {
+                    "_id": "6735e401ae8e876a36043835",
+                    "name": "Truffle Mushroom Pizza",
+                    "price": 24.0,
+                    "category": "Pizza",
+                    "isAvailable": true,
+                    "stationTag": "GRILL",
+                    "preparationTimeMinutes": 15,
+                    "modifierGroups": [
+                      {
+                        "name": "Crust Choice",
+                        "options": [
+                          { "name": "Thin Crust", "price": 0 },
+                          { "name": "Stuffed Crust", "price": 3.5 }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "totalCount": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "Punch Manual Table Order",
+          "method": "POST",
+          "endpoint": "/api/v1/waiter/orders",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "tableNumber": "T-01",
+            "items": [
+              {
+                "menuItemId": "6735e401ae8e876a36043835",
+                "quantity": 2,
+                "specialInstructions": "Extra crispy crust, slice into 8 pieces",
+                "modifiersSelected": [
+                  {
+                    "groupName": "Crust Choice",
+                    "optionName": "Stuffed Crust",
+                    "extraPrice": 3.5
+                  }
+                ]
+              }
+            ],
+            "notes": "Customer allergic to bell peppers"
+          },
+          "responsePayload": {
+            "status": 201,
+            "body": {
+              "success": true,
+              "message": "Order created successfully",
+              "data": {
+                "_id": "6735e4faae8e876a36043840",
+                "orderNumber": "ORD-1042",
+                "venueId": "6af35497ae8e876a3604381d",
+                "tableNumber": "T-01",
+                "status": "SENT_TO_KITCHEN",
+                "subtotal": 55.0,
+                "tax": 4.95,
+                "total": 59.95,
+                "paymentStatus": "UNPAID",
+                "items": [
+                  {
+                    "menuItemId": "6735e401ae8e876a36043835",
+                    "name": "Truffle Mushroom Pizza",
+                    "quantity": 2,
+                    "price": 27.5,
+                    "kdsStatus": "PENDING"
+                  }
+                ],
+                "createdAt": "2026-11-15T12:30:00.000Z"
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark Order Served",
+          "method": "PATCH",
+          "endpoint": "/api/v1/waiter/orders/:id/serve",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Food served to table successfully",
+              "data": {
+                "_id": "6735e4faae8e876a36043840",
+                "status": "SERVED",
+                "timing": {
+                  "servedAt": "2026-11-15T12:50:00.000Z"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Void Order with Manager PIN",
+          "method": "POST",
+          "endpoint": "/api/v1/waiter/orders/:id/void",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "managerPin": "9988",
+            "reason": "Customer changed mind before kitchen began cooking"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Order voided successfully",
+              "data": {
+                "_id": "6735e4faae8e876a36043840",
+                "status": "CANCELLED",
+                "voidReason": "Customer changed mind before kitchen began cooking"
+              }
+            }
+          },
+          "errorResponses": [
+            {
+              "status": 403,
+              "body": {
+                "success": false,
+                "message": "Invalid manager PIN code"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Pay-Later Cash Queue",
+          "method": "GET",
+          "endpoint": "/api/v1/waiter/pay-later",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "orders": [
+                  {
+                    "_id": "6735e4faae8e876a36043840",
+                    "orderNumber": "ORD-1042",
+                    "tableNumber": "T-01",
+                    "total": 59.95,
+                    "paymentStatus": "UNPAID",
+                    "paymentMethod": "PAY_LATER",
+                    "elapsedSinceBillPrintedMinutes": 8
+                  }
+                ],
+                "totalCount": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "Collect Cash Payment",
+          "method": "POST",
+          "endpoint": "/api/v1/waiter/orders/:id/collect-cash",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "amountReceived": 60.0
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Payment collected successfully",
+              "data": {
+                "orderId": "6735e4faae8e876a36043840",
+                "paymentStatus": "PAID",
+                "amountDue": 59.95,
+                "amountReceived": 60.0,
+                "changeGiven": 0.05,
+                "collectedBy": "6735e142ae8e876a36043820"
+              }
+            }
+          }
+        },
+        {
+          "name": "Request Remote Bill Print",
+          "method": "POST",
+          "endpoint": "/api/v1/waiter/orders/:id/print",
+          "authRequired": true,
+          "rolesAllowed": ["WAITER", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "orderId": "6735e4faae8e876a36043840",
+            "tableNumber": "T-01"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Bill print job dispatched to cashier thermal printer",
+              "data": {
+                "jobId": "PRNT-8891",
+                "status": "QUEUED"
+              }
+            }
+          }
+        },
+        {
+          "name": "Call Waiter from Table (Customer / Floor)",
+          "method": "POST",
+          "endpoint": "/api/v1/orders/call-waiter",
+          "authRequired": false,
+          "rolesAllowed": ["PUBLIC"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d"
+          },
+          "requestPayload": {
+            "tableNumber": "T-01",
+            "reason": "Water refill & dessert menu"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Waiter assistance notified successfully",
+              "data": {
+                "tableNumber": "T-01",
+                "timestamp": "2026-11-15T12:45:00.000Z"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "kdsModule": {
+      "moduleName": "Kitchen Display System (KDS) Module",
+      "description": "Powers the back-of-house Kitchen Display Screens: live ticket tracking, prep stages, item-by-item status updates, ticket undo, thermal KOT slip reprints, and instant 86-ing / item availability toggles.",
+      "endpoints": [
+        {
+          "name": "Get Kitchen Tickets (Linear or Kanban View)",
+          "method": "GET",
+          "endpoint": "/api/v1/kds/tickets",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "queryParams": {
+            "stationTag": "GRILL",
+            "view": "kanban"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Data fetched successfully",
+              "data": {
+                "preparing": [
+                  {
+                    "ticketId": "6735e4faae8e876a36043840",
+                    "orderNumber": "ORD-1042",
+                    "tableNumber": "T-01",
+                    "status": "PREPARING",
+                    "elapsedMinutes": 7,
+                    "slaColor": "GREEN",
+                    "items": [
+                      {
+                        "itemIndex": 0,
+                        "name": "Truffle Mushroom Pizza",
+                        "quantity": 2,
+                        "kdsStatus": "PREPARING",
+                        "modifiers": ["Stuffed Crust"],
+                        "specialInstructions": "Extra crispy crust"
+                      }
+                    ]
+                  }
+                ],
+                "ready": []
+              }
+            }
+          }
+        },
+        {
+          "name": "Advance Ticket Status",
+          "method": "PATCH",
+          "endpoint": "/api/v1/kds/tickets/:id/status",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "status": "READY"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Order status updated successfully",
+              "data": {
+                "ticketId": "6735e4faae8e876a36043840",
+                "status": "READY",
+                "timing": {
+                  "readyAt": "2026-11-15T12:42:00.000Z"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Item Prep Status",
+          "method": "PATCH",
+          "endpoint": "/api/v1/kds/tickets/:id/items/:itemIndex/status",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "kdsStatus": "READY"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Item status updated successfully",
+              "data": {
+                "ticketId": "6735e4faae8e876a36043840",
+                "itemIndex": 0,
+                "kdsStatus": "READY"
+              }
+            }
+          }
+        },
+        {
+          "name": "Undo Ticket Status",
+          "method": "POST",
+          "endpoint": "/api/v1/kds/tickets/:id/undo",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "Ticket reverted back to preparing",
+              "data": {
+                "ticketId": "6735e4faae8e876a36043840",
+                "status": "PREPARING"
+              }
+            }
+          }
+        },
+        {
+          "name": "Reprint Kitchen Order Ticket (KOT)",
+          "method": "POST",
+          "endpoint": "/api/v1/kds/tickets/:id/print",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "stationTag": "GRILL"
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "KOT printed successfully",
+              "data": {
+                "ticketId": "6735e4faae8e876a36043840",
+                "stationTag": "GRILL",
+                "status": "PRINTED"
+              }
+            }
+          }
+        },
+        {
+          "name": "List Item Availability (86 List)",
+          "method": "GET",
+          "endpoint": "/api/v1/kds/item-availability",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": null,
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "items": [
+                  {
+                    "_id": "6735e401ae8e876a36043835",
+                    "name": "Truffle Mushroom Pizza",
+                    "isAvailable": false,
+                    "stationTag": "GRILL"
+                  }
+                ],
+                "totalCount": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "Toggle Item Availability (86 Toggle)",
+          "method": "PATCH",
+          "endpoint": "/api/v1/kds/item-availability/:id",
+          "authRequired": true,
+          "rolesAllowed": ["KITCHEN_STAFF", "MANAGER", "VENUE_ADMIN"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "isAvailable": false
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "6735e401ae8e876a36043835",
+                "name": "Truffle Mushroom Pizza",
+                "isAvailable": false
+              },
+              "message": "Item marked out of stock"
+            }
+          }
+        },
+        {
+          "name": "Menu Item Stock / Availability Toggle",
+          "method": "PATCH",
+          "endpoint": "/api/v1/menu-items/:id/stock",
+          "authRequired": true,
+          "rolesAllowed": ["VENUE_ADMIN", "MANAGER", "KITCHEN_STAFF"],
+          "headers": {
+            "Content-Type": "application/json",
+            "x-venue-id": "6af35497ae8e876a3604381d",
+            "Authorization": "Bearer <JWT_ACCESS_TOKEN>"
+          },
+          "requestPayload": {
+            "isAvailable": true
+          },
+          "responsePayload": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "data": {
+                "_id": "6735e401ae8e876a36043835",
+                "isAvailable": true
+              },
+              "message": "Item marked in-stock"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

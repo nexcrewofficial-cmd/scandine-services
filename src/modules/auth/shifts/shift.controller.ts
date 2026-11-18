@@ -30,7 +30,6 @@ export class ShiftController {
     const { data, meta } = await ShiftService.listShifts(venueId, req.query);
     return responseUtils.list(res, {
       key: "shifts",
-      extraKeys: ["shift"],
       data,
       meta,
     });

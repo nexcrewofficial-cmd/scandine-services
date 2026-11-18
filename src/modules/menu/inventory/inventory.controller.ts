@@ -8,7 +8,6 @@ export class InventoryController {
     const { data, meta } = await InventoryService.list(venueId, req.query);
     return responseUtils.list(res, {
       key: "inventory",
-      extraKeys: ["inventoryItems"],
       data,
       meta,
     });

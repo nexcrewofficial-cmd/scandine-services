@@ -7,8 +7,7 @@ export class CategoryController {
     const venueId = req.venueId!;
     const { data, meta } = await CategoryService.listCategories(venueId, req.query);
     return responseUtils.list(res, {
-      key: "category",
-      extraKeys: ["categories"],
+      key: "categories",
       data,
       meta,
     });

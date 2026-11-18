@@ -8,7 +8,6 @@ export class PrinterController {
     const { data, meta } = await PrinterService.list(venueId, req.query);
     return responseUtils.list(res, {
       key: "printers",
-      extraKeys: ["printer"],
       data,
       meta,
     });

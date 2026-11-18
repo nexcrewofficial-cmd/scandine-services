@@ -17,7 +17,6 @@ export class MenuItemController {
     const { data, meta } = await MenuItemService.listItems(venueId, req.query);
     return responseUtils.list(res, {
       key: "products",
-      extraKeys: ["menu", "items"],
       data,
       meta,
     });

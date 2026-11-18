@@ -40,7 +40,6 @@ export class OrderController {
     const { data, meta } = await OrderService.listOrdersByVenue(venueId, req.query);
     return responseUtils.list(res, {
       key: "orders",
-      extraKeys: ["order"],
       data,
       meta,
     });

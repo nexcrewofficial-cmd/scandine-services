@@ -73,7 +73,6 @@ export class KDSController {
     const data = await KDSService.getItemAvailability(venueId);
     return responseUtils.list(res, {
       key: "items",
-      extraKeys: ["itemAvailability"],
       data,
     });
   });

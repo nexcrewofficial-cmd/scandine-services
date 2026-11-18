@@ -8,7 +8,6 @@ export class UserController {
     const { data, meta } = await UserService.getStaffByVenue(venueId, req.query);
     return responseUtils.list(res, {
       key: "staff",
-      extraKeys: ["users"],
       data,
       meta,
     });

@@ -7,8 +7,7 @@ export class WaiterController {
     const venueId = req.venueId!;
     const data = await WaiterService.getLiveFloorMap(venueId);
     return responseUtils.list(res, {
-      key: "floorMap",
-      extraKeys: ["tables"],
+      key: "tables",
       data,
     });
   });
@@ -18,7 +17,6 @@ export class WaiterController {
     const data = await WaiterService.getWaiterMenu(venueId);
     return responseUtils.list(res, {
       key: "products",
-      extraKeys: ["menu", "items"],
       data,
     });
   });
@@ -63,7 +61,6 @@ export class WaiterController {
     const data = await WaiterService.getPayLaterQueue(venueId);
     return responseUtils.list(res, {
       key: "orders",
-      extraKeys: ["queue"],
       data,
     });
   });

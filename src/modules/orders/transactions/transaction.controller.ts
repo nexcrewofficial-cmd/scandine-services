@@ -8,7 +8,6 @@ export class TransactionController {
     const { data, meta } = await TransactionService.list(venueId, req.query);
     return responseUtils.list(res, {
       key: "transactions",
-      extraKeys: ["transaction"],
       data,
       meta,
     });
