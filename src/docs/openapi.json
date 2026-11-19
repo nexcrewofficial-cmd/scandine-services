@@ -13,6 +13,25 @@
   ],
   "components": {
     "schemas": {
+      "createTable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tableNumber", "capacity"],
+        "properties": {
+          "tableNumber": { "type": "string", "minLength": 1 },
+          "capacity": { "type": "integer", "minimum": 1 },
+          "isActive": { "type": "boolean" }
+        }
+      },
+      "updateTable": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tableNumber": { "type": "string", "minLength": 1 },
+          "capacity": { "type": "integer", "minimum": 1 },
+          "isActive": { "type": "boolean" }
+        }
+      },
       "createCategory": {
         "type": "object",
         "additionalProperties": false,
@@ -1079,6 +1098,43 @@
     }
   },
   "paths": {
+    "/api/v1/admin/tables": {
+      "get": {
+        "summary": "List venue tables",
+        "tags": ["Table Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": { "200": { "description": "Venue tables" } }
+      },
+      "post": {
+        "summary": "Create venue table",
+        "tags": ["Table Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/createTable" } } } },
+        "responses": { "201": { "description": "Table created" }, "400": { "description": "Invalid input" }, "409": { "description": "Duplicate table number" } }
+      }
+    },
+    "/api/v1/admin/tables/{id}": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" } }],
+      "get": {
+        "summary": "Get venue table",
+        "tags": ["Table Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": { "200": { "description": "Table details" }, "404": { "description": "Table not found" } }
+      },
+      "put": {
+        "summary": "Update venue table",
+        "tags": ["Table Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/updateTable" } } } },
+        "responses": { "200": { "description": "Table updated" }, "400": { "description": "Invalid input" }, "404": { "description": "Table not found" }, "409": { "description": "Duplicate table number or table in use" } }
+      },
+      "delete": {
+        "summary": "Soft delete venue table",
+        "tags": ["Table Management"],
+        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "responses": { "200": { "description": "Table deleted" }, "404": { "description": "Table not found" }, "409": { "description": "Table in use" } }
+      }
+    },
     "/api/v1/admin/promos/{id}": {
       "put": {
         "summary": "update Promo",

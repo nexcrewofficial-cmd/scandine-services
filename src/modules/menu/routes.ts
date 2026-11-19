@@ -5,6 +5,7 @@ import { menuItemRouter } from "./menu-items/menu-item.route.js";
 import { inventoryRouter } from "./inventory/inventory.route.js";
 import { promoRouter } from "./promos/promo.route.js";
 import { printerRouter } from "./printers/printer.route.js";
+import { tableRouter } from "./tables/table.route.js";
 
 const router = Router();
 
@@ -33,5 +34,9 @@ router.use("/promos", promoRouter);
 // Thermal Hardware Printers
 router.use("/admin/printers", printerRouter);
 router.use("/printers", printerRouter);
+
+// Venue table management
+router.use("/admin/tables", tableRouter);
+router.use("/tables", tableRouter);
 
 export const menuRoutes = router;

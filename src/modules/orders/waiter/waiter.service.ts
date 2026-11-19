@@ -5,6 +5,7 @@ import { TransactionModel } from "../transactions/transaction.model.js";
 import { UserModel, IUserDocument } from "../../auth/users/user.model.js";
 import { MenuItemModel } from "../../menu/menu-items/menu-item.model.js";
 import { VenueModel } from "../../menu/venues/venue.model.js";
+import { TableModel } from "../../menu/tables/table.model.js";
 import { AppError, errorMessage } from "../../../shared/middlewares/index.js";
 import {
   OrderStatus,
@@ -54,8 +55,13 @@ export class WaiterService {
       'items.0': { $exists: true },
     });
 
+    const configuredTables = await TableModel.find({ venueId, deletedAt: null, isActive: true })
+      .select("tableNumber")
+      .sort({ tableNumber: 1 });
     const now = Date.now();
-    const tableMap = new Map<string, TableFloorMapItem>();
+    const tableMap = new Map<string, TableFloorMapItem>(
+      configuredTables.map((table) => [table.tableNumber, { tableNumber: table.tableNumber, status: "EMPTY" }]),
+    );
 
     // Process active orders first
     for (const order of activeOrders) {
