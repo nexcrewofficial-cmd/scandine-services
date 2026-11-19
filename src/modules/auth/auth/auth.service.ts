@@ -1,3 +1,4 @@
+import { UserRole } from "../users/user.enum.js";
 import bcrypt from "bcryptjs";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { UserModel, IUserDocument } from "../users/user.model.js";
@@ -37,6 +38,7 @@ export class AuthService {
     const user = await UserModel.findOne({
       email: dto.email.toLowerCase(),
       deletedAt: null,
+      role: { $ne: UserRole.SUPER_ADMIN },
     });
 
     if (!user) {
@@ -95,6 +97,7 @@ export class AuthService {
         venueId: dto.venueId,
         employeeId: dto.employeeId,
         deletedAt: null,
+        role: { $ne: UserRole.SUPER_ADMIN },
       });
 
       if (!staff) {
@@ -136,6 +139,7 @@ export class AuthService {
       const staffMembers = await UserModel.find({
         venueId: dto.venueId,
         deletedAt: null,
+        role: { $ne: UserRole.SUPER_ADMIN },
       });
 
       for (const staff of staffMembers) {
@@ -201,7 +205,7 @@ export class AuthService {
       const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret) as JwtAuthPayload;
       const user = await UserModel.findById(decoded.userId);
 
-      if (!user || !user.isActive) {
+      if (!user || !user.isActive || user.role === UserRole.SUPER_ADMIN) {
         throw AppError.unauthorized(errorMessage.notFound("User"));
       }
 

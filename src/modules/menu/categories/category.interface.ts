@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { createCategorySchema, updateCategorySchema } from "./category.validation.js";
 export interface ICategory {
   _id?: string;
   venueId: string;
@@ -18,3 +20,6 @@ export interface CreateCategoryDTO {
   sortOrder?: number;
   imageUrl?: string;
 }
+
+export type CreateCategoryInput = z.input<typeof createCategorySchema>;
+export type UpdateCategoryInput = z.input<typeof updateCategorySchema>;

@@ -1,6 +1,8 @@
+import { createMenuItemSchema, updateMenuItemSchema, menuItemAvailabilitySchema } from "./menu-item.validation.js";
+import { idParamsSchema } from "../../../shared/validation/menu.validation.js";
 import { Router } from "express";
 import { MenuItemController } from "./menu-item.controller.js";
-import { authenticateJwt, requireVenueId, requireRole } from "@scan-and-dine/shared-middlewares";
+import { authenticateJwt, requireVenueId, requireRole, validateRequest } from "@scan-and-dine/shared-middlewares";
 import { UserRole } from "@scan-and-dine/shared-types";
 
 const router = Router();
@@ -20,16 +22,18 @@ router.get("/:id", MenuItemController.getById);
 router.patch(
   "/:id/availability",
   requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER, UserRole.KITCHEN_STAFF),
+  validateRequest({ params: idParamsSchema, body: menuItemAvailabilitySchema }),
   MenuItemController.toggleStock
 );
 router.patch(
   "/:id/stock",
   requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER, UserRole.KITCHEN_STAFF),
+  validateRequest({ params: idParamsSchema, body: menuItemAvailabilitySchema }),
   MenuItemController.toggleStock
 );
 
-router.post("/", requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER), MenuItemController.create);
-router.put("/:id", requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER), MenuItemController.update);
-router.delete("/:id", requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER), MenuItemController.delete);
+router.post("/", requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER), validateRequest({ body: createMenuItemSchema }), MenuItemController.create);
+router.put("/:id", requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER), validateRequest({ params: idParamsSchema, body: updateMenuItemSchema }), MenuItemController.update);
+router.delete("/:id", requireRole(UserRole.VENUE_ADMIN, UserRole.MANAGER), validateRequest({ params: idParamsSchema }), MenuItemController.delete);
 
 export const menuItemRouter = router;

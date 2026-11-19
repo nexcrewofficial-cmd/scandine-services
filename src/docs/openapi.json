@@ -12,6 +12,1054 @@
     }
   ],
   "components": {
+    "schemas": {
+      "createCategory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "updateCategory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "createMenuItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "media": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "imageUrl": {
+                "type": "string",
+                "format": "uri"
+              },
+              "videoUrl": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "costPrice": {
+            "type": "number",
+            "minimum": 0
+          },
+          "taxOverride": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "stationTag": {
+            "type": "string",
+            "enum": [
+              "GRILL",
+              "BAR",
+              "DESSERT",
+              "MAIN_KITCHEN"
+            ]
+          },
+          "modifierGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "minSelections": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxSelections": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "extraPrice": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "options"
+              ]
+            }
+          },
+          "dietaryTags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "VEGAN",
+                "VEGETARIAN",
+                "GLUTEN_FREE",
+                "KETO",
+                "HALAL"
+              ]
+            }
+          },
+          "allergens": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PEANUT",
+                "DAIRY",
+                "SHELLFISH",
+                "SOY",
+                "EGG",
+                "WHEAT"
+              ]
+            }
+          },
+          "calories": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "timeWindows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "MON",
+                      "TUE",
+                      "WED",
+                      "THU",
+                      "FRI",
+                      "SAT",
+                      "SUN"
+                    ]
+                  }
+                },
+                "startTime": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                },
+                "endTime": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                }
+              },
+              "required": [
+                "days",
+                "startTime",
+                "endTime"
+              ]
+            }
+          },
+          "soldOutUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "categoryId",
+          "name",
+          "price"
+        ]
+      },
+      "updateMenuItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{24}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "media": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "imageUrl": {
+                "type": "string",
+                "format": "uri"
+              },
+              "videoUrl": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          },
+          "costPrice": {
+            "type": "number",
+            "minimum": 0
+          },
+          "taxOverride": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "stationTag": {
+            "type": "string",
+            "enum": [
+              "GRILL",
+              "BAR",
+              "DESSERT",
+              "MAIN_KITCHEN"
+            ]
+          },
+          "modifierGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "minSelections": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxSelections": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "extraPrice": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "options"
+              ]
+            }
+          },
+          "dietaryTags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "VEGAN",
+                "VEGETARIAN",
+                "GLUTEN_FREE",
+                "KETO",
+                "HALAL"
+              ]
+            }
+          },
+          "allergens": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PEANUT",
+                "DAIRY",
+                "SHELLFISH",
+                "SOY",
+                "EGG",
+                "WHEAT"
+              ]
+            }
+          },
+          "calories": {
+            "type": "number",
+            "minimum": 0
+          },
+          "isAvailable": {
+            "type": "boolean"
+          },
+          "timeWindows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "MON",
+                      "TUE",
+                      "WED",
+                      "THU",
+                      "FRI",
+                      "SAT",
+                      "SUN"
+                    ]
+                  }
+                },
+                "startTime": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                },
+                "endTime": {
+                  "type": "string",
+                  "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                }
+              },
+              "required": [
+                "days",
+                "startTime",
+                "endTime"
+              ]
+            }
+          },
+          "soldOutUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "menuItemAvailability": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "isAvailable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "isAvailable"
+        ]
+      },
+      "createInventory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sku": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "MEAT",
+              "PRODUCE",
+              "DAIRY",
+              "PACKAGING",
+              "BEVERAGE",
+              "SPICES",
+              "OTHER"
+            ]
+          },
+          "stock": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "current": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "KG",
+                  "GRAM",
+                  "LITER",
+                  "MILLILITER",
+                  "PIECE"
+                ]
+              },
+              "lowStockThreshold": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximumCapacity": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "expiryTracking": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "batchId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expirationDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "quantity": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "batchId",
+                "expirationDate",
+                "quantity"
+              ]
+            }
+          },
+          "financials": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "costPerUnit": {
+                "type": "number",
+                "minimum": 0
+              },
+              "lastPurchasePrice": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "supplierInfo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contactEmail": {
+                "type": "string",
+                "format": "email"
+              },
+              "contactPhone": {
+                "type": "string"
+              },
+              "autoReorder": {
+                "type": "boolean"
+              }
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "sku"
+        ]
+      },
+      "updateInventory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sku": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "MEAT",
+              "PRODUCE",
+              "DAIRY",
+              "PACKAGING",
+              "BEVERAGE",
+              "SPICES",
+              "OTHER"
+            ]
+          },
+          "stock": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "current": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "KG",
+                  "GRAM",
+                  "LITER",
+                  "MILLILITER",
+                  "PIECE"
+                ]
+              },
+              "lowStockThreshold": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximumCapacity": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "expiryTracking": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "batchId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expirationDate": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "quantity": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "batchId",
+                "expirationDate",
+                "quantity"
+              ]
+            }
+          },
+          "financials": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "costPerUnit": {
+                "type": "number",
+                "minimum": 0
+              },
+              "lastPurchasePrice": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "supplierInfo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contactEmail": {
+                "type": "string",
+                "format": "email"
+              },
+              "contactPhone": {
+                "type": "string"
+              },
+              "autoReorder": {
+                "type": "boolean"
+              }
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "createPrinter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "macAddress": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "printerType": {
+            "type": "string",
+            "enum": [
+              "THERMAL_80MM",
+              "THERMAL_58MM",
+              "LABEL_PRINTER"
+            ]
+          },
+          "stationTag": {
+            "type": "string",
+            "enum": [
+              "GRILL",
+              "BAR",
+              "DESSERT",
+              "MAIN_KITCHEN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE",
+              "PAPER_OUT",
+              "ERROR"
+            ]
+          },
+          "rules": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "printCustomerReceipt": {
+                "type": "boolean"
+              },
+              "printKOT": {
+                "type": "boolean"
+              },
+              "autoPrintNewOrder": {
+                "type": "boolean"
+              }
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "macAddress",
+          "ipAddress"
+        ]
+      },
+      "updatePrinter": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "macAddress": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "printerType": {
+            "type": "string",
+            "enum": [
+              "THERMAL_80MM",
+              "THERMAL_58MM",
+              "LABEL_PRINTER"
+            ]
+          },
+          "stationTag": {
+            "type": "string",
+            "enum": [
+              "GRILL",
+              "BAR",
+              "DESSERT",
+              "MAIN_KITCHEN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE",
+              "PAPER_OUT",
+              "ERROR"
+            ]
+          },
+          "rules": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "printCustomerReceipt": {
+                "type": "boolean"
+              },
+              "printKOT": {
+                "type": "boolean"
+              },
+              "autoPrintNewOrder": {
+                "type": "boolean"
+              }
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "createPromo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "campaignName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "discount": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "PERCENTAGE",
+                  "FLAT",
+                  "FREE_ITEM"
+                ]
+              },
+              "value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maxDiscountAmount": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ]
+          },
+          "criteria": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "minOrderValue": {
+                "type": "number",
+                "minimum": 0
+              },
+              "validDays": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "MON",
+                    "TUE",
+                    "WED",
+                    "THU",
+                    "FRI",
+                    "SAT",
+                    "SUN"
+                  ]
+                }
+              },
+              "startTime": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "endTime": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "applicableItemIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{24}$"
+                }
+              },
+              "applicableCategoryIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{24}$"
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "maxTotalUses": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maxUsesPerCustomer": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED",
+              "EXPIRED"
+            ]
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "code",
+          "campaignName",
+          "discount"
+        ]
+      },
+      "updatePromo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "campaignName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "discount": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "PERCENTAGE",
+                  "FLAT",
+                  "FREE_ITEM"
+                ]
+              },
+              "value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maxDiscountAmount": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ]
+          },
+          "criteria": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "minOrderValue": {
+                "type": "number",
+                "minimum": 0
+              },
+              "validDays": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "MON",
+                    "TUE",
+                    "WED",
+                    "THU",
+                    "FRI",
+                    "SAT",
+                    "SUN"
+                  ]
+                }
+              },
+              "startTime": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "endTime": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "applicableItemIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{24}$"
+                }
+              },
+              "applicableCategoryIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{24}$"
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "maxTotalUses": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maxUsesPerCustomer": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED",
+              "EXPIRED"
+            ]
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
     "securitySchemes": {
       "BearerAuth": {
         "type": "http",
@@ -31,6 +1079,641 @@
     }
   },
   "paths": {
+    "/api/v1/admin/promos/{id}": {
+      "put": {
+        "summary": "update Promo",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields. usage.currentUses is server-managed. A discount update requires type and value; percentage discounts cannot exceed 100.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updatePromo"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/promos": {
+      "post": {
+        "summary": "create Promo",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields. usage.currentUses is server-managed. A discount update requires type and value; percentage discounts cannot exceed 100.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createPromo"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/promos/{id}": {
+      "put": {
+        "summary": "update Promo",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields. usage.currentUses is server-managed. A discount update requires type and value; percentage discounts cannot exceed 100.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updatePromo"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/printers/{id}": {
+      "put": {
+        "summary": "update Printer",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updatePrinter"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/printers": {
+      "post": {
+        "summary": "create Printer",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createPrinter"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/printers/{id}": {
+      "put": {
+        "summary": "update Printer",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updatePrinter"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/printers": {
+      "post": {
+        "summary": "create Printer",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createPrinter"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/inventory/{id}": {
+      "put": {
+        "summary": "update Inventory",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateInventory"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/inventory": {
+      "post": {
+        "summary": "create Inventory",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createInventory"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menu/items/{id}/availability": {
+      "patch": {
+        "summary": "Update item availability",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/menuItemAvailability"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability updated"
+          },
+          "400": {
+            "description": "Invalid body or ID"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menu/items/{id}/stock": {
+      "patch": {
+        "summary": "Update item availability",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/menuItemAvailability"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability updated"
+          },
+          "400": {
+            "description": "Invalid body or ID"
+          }
+        }
+      }
+    },
+    "/api/v1/menu-items/{id}/availability": {
+      "patch": {
+        "summary": "Update item availability",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/menuItemAvailability"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability updated"
+          },
+          "400": {
+            "description": "Invalid body or ID"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menu/items/{id}": {
+      "put": {
+        "summary": "update MenuItem",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateMenuItem"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/menu/items": {
+      "post": {
+        "summary": "create MenuItem",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createMenuItem"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menu/categories/{id}": {
+      "put": {
+        "summary": "update Category",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateCategory"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/menu/categories": {
+      "post": {
+        "summary": "create Category",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createCategory"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Gateway Health Check",
@@ -160,78 +1843,275 @@
     "/api/v1/admin/staff": {
       "get": {
         "summary": "List All Staff Members",
-        "tags": ["Staff Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Staff Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "200": { "description": "List of staff members" }
-        }
+          "200": {
+            "description": "List of staff members"
+          },
+          "403": {
+            "description": "Caller or target role is not authorized"
+          }
+        },
+        "description": "Business staff management only. VENUE_ADMIN can manage MANAGER, CASHIER, WAITER and KITCHEN_STAFF. MANAGER can manage only CASHIER, WAITER and KITCHEN_STAFF. Neither role can create, modify or deactivate VENUE_ADMIN or SUPER_ADMIN accounts. SUPER_ADMIN tokens are rejected by this server. Staff responses exclude passwordHash, pinCodeHash and twoFactorSecret."
       },
       "post": {
         "summary": "Onboard New Staff Member",
-        "tags": ["Staff Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Staff Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "email", "role", "pinCode"],
+                "required": [
+                  "firstName",
+                  "lastName",
+                  "email",
+                  "pinCode",
+                  "role"
+                ],
                 "properties": {
-                  "name": { "type": "string" },
-                  "email": { "type": "string" },
-                  "role": { "type": "string", "enum": ["MANAGER", "WAITER", "KITCHEN"] },
-                  "pinCode": { "type": "string", "example": "5678" }
+                  "firstName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "pinCode": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 4,
+                    "example": "5678"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "MANAGER",
+                      "CASHIER",
+                      "WAITER",
+                      "KITCHEN_STAFF"
+                    ]
+                  },
+                  "employeeId": {
+                    "type": "string"
+                  },
+                  "hourlyRate": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "employmentType": {
+                    "type": "string",
+                    "enum": [
+                      "FULL_TIME",
+                      "PART_TIME",
+                      "CONTRACT"
+                    ]
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Staff member onboarded" }
-        }
+          "201": {
+            "description": "Staff member onboarded"
+          },
+          "400": {
+            "description": "Invalid staff data or unsupported role"
+          },
+          "403": {
+            "description": "Caller or target role is not authorized"
+          }
+        },
+        "description": "Business staff management only. VENUE_ADMIN can manage MANAGER, CASHIER, WAITER and KITCHEN_STAFF. MANAGER can manage only CASHIER, WAITER and KITCHEN_STAFF. Neither role can create, modify or deactivate VENUE_ADMIN or SUPER_ADMIN accounts. SUPER_ADMIN tokens are rejected by this server. Staff responses exclude passwordHash, pinCodeHash and twoFactorSecret."
       }
     },
     "/api/v1/admin/staff/{id}": {
       "get": {
         "summary": "Get Staff Member Details",
-        "tags": ["Staff Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Staff Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Staff member data" }
-        }
+          "200": {
+            "description": "Staff member data"
+          },
+          "403": {
+            "description": "Caller or target role is not authorized"
+          }
+        },
+        "description": "Business staff management only. VENUE_ADMIN can manage MANAGER, CASHIER, WAITER and KITCHEN_STAFF. MANAGER can manage only CASHIER, WAITER and KITCHEN_STAFF. Neither role can create, modify or deactivate VENUE_ADMIN or SUPER_ADMIN accounts. SUPER_ADMIN tokens are rejected by this server. Staff responses exclude passwordHash, pinCodeHash and twoFactorSecret."
       },
       "put": {
         "summary": "Update Staff Member",
-        "tags": ["Staff Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Staff Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string" },
-                  "role": { "type": "string" }
+                  "firstName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "pinCode": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 4,
+                    "example": "5678"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "MANAGER",
+                      "CASHIER",
+                      "WAITER",
+                      "KITCHEN_STAFF"
+                    ]
+                  },
+                  "employeeId": {
+                    "type": "string"
+                  },
+                  "hourlyRate": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "employmentType": {
+                    "type": "string",
+                    "enum": [
+                      "FULL_TIME",
+                      "PART_TIME",
+                      "CONTRACT"
+                    ]
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Staff member updated" }
-        }
+          "200": {
+            "description": "Staff member updated"
+          },
+          "400": {
+            "description": "Invalid staff data or unsupported role"
+          },
+          "403": {
+            "description": "Caller or target role is not authorized"
+          }
+        },
+        "description": "Business staff management only. VENUE_ADMIN can manage MANAGER, CASHIER, WAITER and KITCHEN_STAFF. MANAGER can manage only CASHIER, WAITER and KITCHEN_STAFF. Neither role can create, modify or deactivate VENUE_ADMIN or SUPER_ADMIN accounts. SUPER_ADMIN tokens are rejected by this server. Staff responses exclude passwordHash, pinCodeHash and twoFactorSecret."
       },
       "delete": {
         "summary": "Deactivate Staff Member",
-        "tags": ["Staff Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Staff Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Staff member deactivated" }
-        }
+          "200": {
+            "description": "Staff member deactivated"
+          },
+          "403": {
+            "description": "Caller or target role is not authorized"
+          }
+        },
+        "description": "Business staff management only. VENUE_ADMIN can manage MANAGER, CASHIER, WAITER and KITCHEN_STAFF. MANAGER can manage only CASHIER, WAITER and KITCHEN_STAFF. Neither role can create, modify or deactivate VENUE_ADMIN or SUPER_ADMIN accounts. SUPER_ADMIN tokens are rejected by this server. Staff responses exclude passwordHash, pinCodeHash and twoFactorSecret."
       }
     },
     "/api/v1/shifts/clock-in": {
@@ -319,207 +2199,510 @@
     "/api/v1/categories": {
       "get": {
         "summary": "List Menu Categories",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "200": { "description": "List of categories" }
+          "200": {
+            "description": "List of categories"
+          }
         }
       },
       "post": {
         "summary": "Create Category",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["name"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "description": { "type": "string" },
-                  "displayOrder": { "type": "number" }
-                }
+                "$ref": "#/components/schemas/createCategory"
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Category created" }
-        }
+          "201": {
+            "description": "Category created"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields."
       }
     },
     "/api/v1/categories/{id}": {
       "put": {
         "summary": "Update Category",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Category updated" }
+          "200": {
+            "description": "Category updated"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateCategory"
+              }
+            }
+          }
         }
       },
       "delete": {
         "summary": "Delete Category",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Category deleted" }
+          "200": {
+            "description": "Category deleted"
+          }
         }
       }
     },
     "/api/v1/menu-items": {
       "get": {
         "summary": "List Menu Items",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "200": { "description": "List of menu items" }
+          "200": {
+            "description": "List of menu items"
+          }
         }
       },
       "post": {
         "summary": "Create Menu Item",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["name", "price", "categoryId"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "price": { "type": "number" },
-                  "categoryId": { "type": "string" }
-                }
+                "$ref": "#/components/schemas/createMenuItem"
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Menu item created" }
-        }
+          "201": {
+            "description": "Menu item created"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields."
       }
     },
     "/api/v1/menu-items/{id}": {
       "get": {
         "summary": "Get Menu Item Details",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Menu item details" }
+          "200": {
+            "description": "Menu item details"
+          }
         }
       },
       "put": {
         "summary": "Update Menu Item",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Menu item updated" }
-        }
-      },
-      "delete": {
-        "summary": "Delete Menu Item",
-        "tags": ["Menu Management"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": {
-          "200": { "description": "Menu item deleted" }
-        }
-      }
-    },
-    "/api/v1/menu-items/{id}/stock": {
-      "patch": {
-        "summary": "Toggle Item Stock Availability (In-Stock / Out-of-Stock)",
-        "tags": ["KDS & Kitchen"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+          "200": {
+            "description": "Menu item updated"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["isAvailable"],
-                "properties": {
-                  "isAvailable": { "type": "boolean" }
-                }
+                "$ref": "#/components/schemas/updateMenuItem"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Menu Item",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Menu item deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/menu-items/{id}/stock": {
+      "patch": {
+        "summary": "Update item availability",
+        "tags": [
+          "Menu Management"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/menuItemAvailability"
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Stock status updated" }
+          "200": {
+            "description": "Availability updated"
+          },
+          "400": {
+            "description": "Invalid body or ID"
+          }
         }
       }
     },
     "/api/v1/inventory": {
       "get": {
         "summary": "List Inventory Items",
-        "tags": ["Inventory"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Inventory list" }
+          "200": {
+            "description": "Inventory list"
+          }
         }
       },
       "post": {
         "summary": "Add Inventory Item",
-        "tags": ["Inventory"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "201": { "description": "Inventory item created" }
+          "201": {
+            "description": "Inventory item created"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createInventory"
+              }
+            }
+          }
         }
       }
     },
     "/api/v1/inventory/{id}": {
       "get": {
         "summary": "Get Inventory Item",
-        "tags": ["Inventory"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Inventory details" }
+          "200": {
+            "description": "Inventory details"
+          }
         }
       },
       "put": {
         "summary": "Update Inventory Item",
-        "tags": ["Inventory"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Inventory updated" }
+          "200": {
+            "description": "Inventory updated"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/updateInventory"
+              }
+            }
+          }
         }
       },
       "delete": {
         "summary": "Delete Inventory Item",
-        "tags": ["Inventory"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Inventory deleted" }
+          "200": {
+            "description": "Inventory deleted"
+          }
         }
       }
     },
     "/api/v1/promos": {
       "get": {
         "summary": "List Promos",
-        "tags": ["Promotions"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Promotions"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Promo codes list" }
+          "200": {
+            "description": "Promo codes list"
+          }
         }
       },
       "post": {
         "summary": "Create Promo Code",
-        "tags": ["Promotions"],
-        "security": [{ "BearerAuth": [], "VenueIdHeader": [] }],
+        "tags": [
+          "Promotions"
+        ],
+        "security": [
+          {
+            "BearerAuth": [],
+            "VenueIdHeader": []
+          }
+        ],
         "responses": {
-          "201": { "description": "Promo code created" }
+          "201": {
+            "description": "Promo code created"
+          },
+          "400": {
+            "description": "Invalid input or non-editable field"
+          }
+        },
+        "description": "Only documented editable fields are accepted. Unknown fields, venueId, deletedAt, timestamps and MongoDB operators are rejected. Nested updates preserve unspecified sibling fields. usage.currentUses is server-managed. A discount update requires type and value; percentage discounts cannot exceed 100.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/createPromo"
+              }
+            }
+          }
         }
       }
     },

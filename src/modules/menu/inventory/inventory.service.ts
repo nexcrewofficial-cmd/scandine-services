@@ -1,7 +1,10 @@
+import type { CreateInventoryInput, UpdateInventoryInput } from "./inventory.interface.js";
+import { createInventorySchema, updateInventorySchema } from "./inventory.validation.js";
+import { flattenUpdate } from "../../../shared/utils/update.util.js";
 import { FilterQuery } from "mongoose";
 import { InventoryModel, IInventoryDocument } from "./inventory.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { IInventory, IngredientCategory, InventoryQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
+import { IngredientCategory, InventoryQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
 import {
   parsePaginationQuery,
   parseBooleanFilter,
@@ -60,23 +63,24 @@ export class InventoryService {
     return item;
   }
 
-  static async create(venueId: string, data: Partial<IInventory>): Promise<IInventoryDocument> {
-    const existing = await InventoryModel.findOne({ venueId, sku: data.sku });
+  static async create(venueId: string, data: CreateInventoryInput): Promise<IInventoryDocument> {
+    const sanitized = createInventorySchema.parse(data);
+    const existing = await InventoryModel.findOne({ venueId, sku: sanitized.sku });
     if (existing) {
       throw AppError.conflict(errorMessage.skuAlreadyExists);
     }
-    return InventoryModel.create({ ...data, venueId });
+    return InventoryModel.create({ ...sanitized, venueId });
   }
 
   static async update(
     venueId: string,
     id: string,
-    updates: Partial<IInventory>
+    updates: UpdateInventoryInput
   ): Promise<IInventoryDocument> {
     const item = await InventoryModel.findOneAndUpdate(
       { _id: id, venueId, deletedAt: null },
-      updates,
-      { new: true }
+      { $set: flattenUpdate(updateInventorySchema.parse(updates)) },
+      { new: true, runValidators: true }
     );
     if (!item) {
       throw AppError.notFound(errorMessage.notFound("Inventory item"));

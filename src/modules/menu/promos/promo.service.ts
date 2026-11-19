@@ -1,7 +1,10 @@
+import type { CreatePromoInput, UpdatePromoInput } from "./promo.interface.js";
+import { createPromoSchema, updatePromoSchema } from "./promo.validation.js";
+import { flattenUpdate } from "../../../shared/utils/update.util.js";
 import { FilterQuery } from "mongoose";
 import { PromoCodeModel, IPromoCodeDocument } from "./promo.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { IPromoCode, PromoStatus, DiscountType, PromoQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
+import { PromoStatus, DiscountType, PromoQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
 import {
   parsePaginationQuery,
   escapeRegex,
@@ -88,30 +91,31 @@ export class PromoService {
     };
   }
 
-  static async create(venueId: string, data: Partial<IPromoCode>): Promise<IPromoCodeDocument> {
+  static async create(venueId: string, data: CreatePromoInput): Promise<IPromoCodeDocument> {
+    const sanitized = createPromoSchema.parse(data);
     const existing = await PromoCodeModel.findOne({
       venueId,
-      code: data.code?.toUpperCase(),
+      code: sanitized.code,
     });
     if (existing) {
       throw AppError.conflict(errorMessage.alreadyExists("Promo code"));
     }
     return PromoCodeModel.create({
-      ...data,
+      ...sanitized,
       venueId,
-      code: data.code?.toUpperCase(),
+      code: sanitized.code,
     });
   }
 
   static async update(
     venueId: string,
     id: string,
-    updates: Partial<IPromoCode>
+    updates: UpdatePromoInput
   ): Promise<IPromoCodeDocument> {
     const promo = await PromoCodeModel.findOneAndUpdate(
       { _id: id, venueId, deletedAt: null },
-      updates,
-      { new: true }
+      { $set: flattenUpdate(updatePromoSchema.parse(updates)) },
+      { new: true, runValidators: true }
     );
     if (!promo) {
       throw AppError.notFound(errorMessage.notFound("Promo code"));

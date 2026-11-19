@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { createInventorySchema, updateInventorySchema } from "./inventory.validation.js";
 import { StockUnit, IngredientCategory } from './inventory.enum.js';
 
 export * from './inventory.enum.js';
@@ -42,3 +44,6 @@ export interface IInventory {
   updatedAt?: Date;
   deletedAt?: Date | null;
 }
+
+export type CreateInventoryInput = z.input<typeof createInventorySchema>;
+export type UpdateInventoryInput = z.input<typeof updateInventorySchema>;

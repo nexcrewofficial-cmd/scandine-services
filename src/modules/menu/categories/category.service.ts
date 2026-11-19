@@ -1,7 +1,10 @@
+import type { CreateCategoryInput, UpdateCategoryInput } from "./category.interface.js";
+import { createCategorySchema, updateCategorySchema } from "./category.validation.js";
+import { flattenUpdate } from "../../../shared/utils/update.util.js";
 import { FilterQuery } from "mongoose";
 import { CategoryModel, ICategoryDocument } from "./category.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
-import { CreateCategoryDTO, CategoryQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
+import { CategoryQueryFilters, PaginatedResult } from "@scan-and-dine/shared-types";
 import {
   parsePaginationQuery,
   parseBooleanFilter,
@@ -44,19 +47,20 @@ export class CategoryService {
     return { data, meta };
   }
 
-  static async createCategory(venueId: string, dto: CreateCategoryDTO): Promise<ICategoryDocument> {
-    return CategoryModel.create({ ...dto, venueId });
+  static async createCategory(venueId: string, dto: CreateCategoryInput): Promise<ICategoryDocument> {
+    const sanitized = createCategorySchema.parse(dto);
+    return CategoryModel.create({ ...sanitized, venueId });
   }
 
   static async updateCategory(
     venueId: string,
     categoryId: string,
-    updates: Partial<CreateCategoryDTO>
+    updates: UpdateCategoryInput
   ): Promise<ICategoryDocument> {
     const category = await CategoryModel.findOneAndUpdate(
       { _id: categoryId, venueId, deletedAt: null },
-      updates,
-      { new: true }
+      { $set: flattenUpdate(updateCategorySchema.parse(updates)) },
+      { new: true, runValidators: true }
     );
     if (!category) {
       throw AppError.notFound(errorMessage.notFound("Category"));

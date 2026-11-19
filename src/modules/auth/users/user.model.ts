@@ -3,6 +3,13 @@ import { IUser, UserRole, Gender, EmploymentType } from '@scan-and-dine/shared-t
 
 export interface IUserDocument extends Omit<IUser, '_id'>, Document {}
 
+function removeUserSecrets(_document: unknown, result: Record<string, unknown>) {
+  delete result.passwordHash;
+  delete result.pinCodeHash;
+  delete result.twoFactorSecret;
+  return result;
+}
+
 const UserSchema = new Schema<IUserDocument>(
   {
     venueId: {
@@ -57,6 +64,8 @@ const UserSchema = new Schema<IUserDocument>(
   },
   {
     timestamps: true,
+    toJSON: { transform: removeUserSecrets },
+    toObject: { transform: removeUserSecrets },
   }
 );
 

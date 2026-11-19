@@ -3,6 +3,7 @@ import path from 'path';
 import Converter from 'openapi-to-postmanv2';
 
 const openapiPath = path.join(process.cwd(), 'src', 'docs', 'openapi.json');
+const localOnly = process.argv.includes("--local-only");
 const outputPath = path.join(process.cwd(), 'postman_collection.json');
 
 // Brain artifact directory for sharing with frontend developers
@@ -307,7 +308,7 @@ Converter.convert(
       console.log(`\n🎉 Success! Module-wise Postman collection generated at:\n   ${outputPath}`);
 
       // 2. Mirror master collection to Antigravity brain artifact directory for frontend developer sharing
-      if (fs.existsSync(artifactDir)) {
+      if (!localOnly && fs.existsSync(artifactDir)) {
         fs.writeFileSync(path.join(artifactDir, 'postman_collection.json'), JSON.stringify(collection, null, 2), 'utf8');
         console.log(`🎉 Success! Mirrored collection to Antigravity artifact directory:\n   ${artifactDir}`);
       }
@@ -317,7 +318,7 @@ Converter.convert(
     const apiKey = process.env.POSTMAN_API_KEY;
     const collectionUid = process.env.POSTMAN_COLLECTION_UID;
 
-    if (apiKey && collectionUid) {
+    if (!localOnly && apiKey && collectionUid) {
       console.log('🔄 Syncing directly to Postman Cloud...');
       try {
         const response = await fetch(`https://api.getpostman.com/collections/${collectionUid}`, {

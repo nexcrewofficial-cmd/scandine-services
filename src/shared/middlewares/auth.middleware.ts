@@ -36,6 +36,9 @@ export const authenticateJwt = (
 
   try {
     const decoded = jwt.verify(token, secret) as AuthenticatedUser;
+    if (decoded.role === UserRole.SUPER_ADMIN) {
+      return next(AppError.forbidden(errorMessage.forbidden));
+    }
     req.user = decoded;
     if (decoded.venueId) {
       req.venueId = decoded.venueId;
@@ -61,6 +64,9 @@ export const optionalJwt = (
 
   try {
     const decoded = jwt.verify(token, secret) as AuthenticatedUser;
+    if (decoded.role === UserRole.SUPER_ADMIN) {
+      return next(AppError.forbidden(errorMessage.forbidden));
+    }
     req.user = decoded;
     if (decoded.venueId) {
       req.venueId = decoded.venueId;

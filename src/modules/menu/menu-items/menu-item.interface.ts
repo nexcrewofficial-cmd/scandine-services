@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { createMenuItemSchema, updateMenuItemSchema } from "./menu-item.validation.js";
 import { StationTag, DietaryTag, Allergen } from "./menu-item.enum.js";
 import { BaseEventPayload } from "../../../shared/event-bus/index.js";
 
@@ -77,3 +79,6 @@ export interface ItemStockEventPayload extends BaseEventPayload {
   isAvailable: boolean;
 }
 
+
+export type CreateMenuItemInput = z.input<typeof createMenuItemSchema>;
+export type UpdateMenuItemInput = z.input<typeof updateMenuItemSchema>;

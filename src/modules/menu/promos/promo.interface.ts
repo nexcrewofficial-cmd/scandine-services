@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { createPromoSchema, updatePromoSchema } from "./promo.validation.js";
 import { DiscountType, PromoStatus } from './promo.enum.js';
 
 export * from './promo.enum.js';
@@ -38,3 +40,6 @@ export interface IPromoCode {
   updatedAt?: Date;
   deletedAt?: Date | null;
 }
+
+export type CreatePromoInput = z.input<typeof createPromoSchema>;
+export type UpdatePromoInput = z.input<typeof updatePromoSchema>;

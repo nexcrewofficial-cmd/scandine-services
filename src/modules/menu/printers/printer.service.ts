@@ -1,8 +1,10 @@
+import type { CreatePrinterInput, UpdatePrinterInput } from "./printer.interface.js";
+import { createPrinterSchema, updatePrinterSchema } from "./printer.validation.js";
+import { flattenUpdate } from "../../../shared/utils/update.util.js";
 import { FilterQuery } from "mongoose";
 import { PrinterModel, IPrinterDocument } from "./printer.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
 import {
-  IPrinter,
   PrinterStatus,
   PrinterType,
   StationTag,
@@ -62,19 +64,20 @@ export class PrinterService {
     return { data, meta };
   }
 
-  static async create(venueId: string, data: Partial<IPrinter>): Promise<IPrinterDocument> {
-    return PrinterModel.create({ ...data, venueId });
+  static async create(venueId: string, data: CreatePrinterInput): Promise<IPrinterDocument> {
+    const sanitized = createPrinterSchema.parse(data);
+    return PrinterModel.create({ ...sanitized, venueId });
   }
 
   static async update(
     venueId: string,
     id: string,
-    updates: Partial<IPrinter>
+    updates: UpdatePrinterInput
   ): Promise<IPrinterDocument> {
     const printer = await PrinterModel.findOneAndUpdate(
       { _id: id, venueId, deletedAt: null },
-      updates,
-      { new: true }
+      { $set: flattenUpdate(updatePrinterSchema.parse(updates)) },
+      { new: true, runValidators: true }
     );
     if (!printer) {
       throw AppError.notFound(errorMessage.notFound("Printer"));

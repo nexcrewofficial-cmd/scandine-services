@@ -1,3 +1,5 @@
+import { AuthenticatedUser } from "../../../shared/middlewares/auth.middleware.js";
+import { authorizeStaffMutation } from "./user.authorization.js";
 import { FilterQuery } from "mongoose";
 import bcrypt from "bcryptjs";
 import { UserModel, IUserDocument } from "./user.model.js";
@@ -53,7 +55,7 @@ export class UserService {
 
     const total = await UserModel.countDocuments(query);
     const mQuery = UserModel.find(query)
-      .select("-passwordHash -pinCodeHash")
+      .select("-passwordHash -pinCodeHash -twoFactorSecret")
       .sort(sort);
 
     if (hasPaging) {
@@ -68,7 +70,7 @@ export class UserService {
 
   static async getStaffById(venueId: string, userId: string): Promise<IUserDocument> {
     const user = await UserModel.findOne({ _id: userId, venueId, deletedAt: null }).select(
-      "-passwordHash -pinCodeHash"
+      "-passwordHash -pinCodeHash -twoFactorSecret"
     );
     if (!user) {
       throw AppError.notFound(errorMessage.notFound("Staff member"));
@@ -76,7 +78,8 @@ export class UserService {
     return user;
   }
 
-  static async createStaff(venueId: string, data: RegisterStaffDTO): Promise<IUserDocument> {
+  static async createStaff(venueId: string, data: RegisterStaffDTO, actor: AuthenticatedUser): Promise<IUserDocument> {
+    await authorizeStaffMutation(actor, venueId, undefined, data.role);
     const existing = await UserModel.findOne({ venueId, email: data.email.toLowerCase() });
     if (existing) {
       throw AppError.conflict(errorMessage.emailInUse);
@@ -99,12 +102,18 @@ export class UserService {
   static async updateStaff(
     venueId: string,
     userId: string,
-    data: Partial<RegisterStaffDTO>
+    data: Partial<RegisterStaffDTO>,
+    actor: AuthenticatedUser
   ): Promise<IUserDocument> {
-    const user = await UserModel.findOne({ _id: userId, venueId, deletedAt: null });
+    await authorizeStaffMutation(actor, venueId);
+    const user = await UserModel.findOne({ _id: userId, venueId, deletedAt: null }).select(
+      "-passwordHash -pinCodeHash -twoFactorSecret"
+    );
     if (!user) {
       throw AppError.notFound(errorMessage.notFound("Staff member"));
     }
+
+    await authorizeStaffMutation(actor, venueId, user.role, data.role);
 
     if (data.pinCode) {
       const salt = await bcrypt.genSalt(10);
@@ -126,9 +135,15 @@ export class UserService {
     return user;
   }
 
-  static async deactivateStaff(venueId: string, userId: string): Promise<void> {
+  static async deactivateStaff(venueId: string, userId: string, actor: AuthenticatedUser): Promise<void> {
+    await authorizeStaffMutation(actor, venueId);
+    const target = await UserModel.findOne({ _id: userId, venueId, deletedAt: null });
+    if (!target) {
+      throw AppError.notFound(errorMessage.notFound("Staff member"));
+    }
+    await authorizeStaffMutation(actor, venueId, target.role);
     const user = await UserModel.findOneAndUpdate(
-      { _id: userId, venueId },
+      { _id: userId, venueId, deletedAt: null, role: target.role },
       { isActive: false, deletedAt: new Date() }
     );
     if (!user) {

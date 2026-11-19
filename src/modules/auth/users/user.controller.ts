@@ -25,7 +25,7 @@ export class UserController {
 
   static createStaff = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await UserService.createStaff(venueId, req.body);
+    const data = await UserService.createStaff(venueId, req.body, req.user!);
     return responseUtils.success(res, {
       data,
       message: successMessage.created,
@@ -35,7 +35,7 @@ export class UserController {
 
   static updateStaff = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    const data = await UserService.updateStaff(venueId, req.params.id as string, req.body);
+    const data = await UserService.updateStaff(venueId, req.params.id as string, req.body, req.user!);
     return responseUtils.success(res, {
       data,
       message: successMessage.updated,
@@ -45,7 +45,7 @@ export class UserController {
 
   static deleteStaff = asyncHandler(async (req: Request, res: Response) => {
     const venueId = req.venueId!;
-    await UserService.deactivateStaff(venueId, req.params.id as string);
+    await UserService.deactivateStaff(venueId, req.params.id as string, req.user!);
     return responseUtils.success(res, {
       message: successMessage.deleted,
       status: 200,

@@ -1,11 +1,12 @@
+import type { CreateMenuItemInput, UpdateMenuItemInput } from "./menu-item.interface.js";
+import { createMenuItemSchema, updateMenuItemSchema, menuItemAvailabilitySchema } from "./menu-item.validation.js";
+import { flattenUpdate } from "../../../shared/utils/update.util.js";
 import { FilterQuery } from "mongoose";
 import { MenuItemModel, IMenuItemDocument } from "./menu-item.model.js";
 import { CategoryModel } from "../categories/category.model.js";
 import { VenueModel } from "../venues/venue.model.js";
 import { AppError, errorMessage } from "../../../shared/constants/messages.constant.js";
 import {
-  CreateMenuItemDTO,
-  UpdateMenuItemDTO,
   StationTag,
   MenuItemQueryFilters,
   PaginatedResult,
@@ -116,19 +117,20 @@ export class MenuItemService {
     return item;
   }
 
-  static async createItem(venueId: string, dto: CreateMenuItemDTO): Promise<IMenuItemDocument> {
-    return MenuItemModel.create({ ...dto, venueId });
+  static async createItem(venueId: string, dto: CreateMenuItemInput): Promise<IMenuItemDocument> {
+    const sanitized = createMenuItemSchema.parse(dto);
+    return MenuItemModel.create({ ...sanitized, venueId });
   }
 
   static async updateItem(
     venueId: string,
     itemId: string,
-    updates: UpdateMenuItemDTO
+    updates: UpdateMenuItemInput
   ): Promise<IMenuItemDocument> {
     const item = await MenuItemModel.findOneAndUpdate(
       { _id: itemId, venueId, deletedAt: null },
-      updates,
-      { new: true }
+      { $set: flattenUpdate(updateMenuItemSchema.parse(updates)) },
+      { new: true, runValidators: true }
     );
     if (!item) {
       throw AppError.notFound(errorMessage.notFound("Menu item"));
@@ -144,8 +146,8 @@ export class MenuItemService {
   ): Promise<IMenuItemDocument> {
     const item = await MenuItemModel.findOneAndUpdate(
       { _id: itemId, venueId, deletedAt: null },
-      { isAvailable },
-      { new: true }
+      { $set: menuItemAvailabilitySchema.parse({ isAvailable }) },
+      { new: true, runValidators: true }
     );
 
     if (!item) {
