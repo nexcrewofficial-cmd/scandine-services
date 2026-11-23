@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import Converter from 'openapi-to-postmanv2';
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const openapiPath = path.join(process.cwd(), 'src', 'docs', 'openapi.json');
 const localOnly = process.argv.includes("--local-only");
@@ -169,6 +172,7 @@ function organizeCollectionByModule(tagFolders: any[]) {
     },
     getFolder('Venue Admin'),
     getFolder('Menu Management'),
+    getFolder("Table Management"),
     getFolder('Inventory'),
     {
       name: 'Promotions & Discounts',
@@ -335,9 +339,11 @@ Converter.convert(
         } else {
           const errData = await response.json();
           console.warn('⚠️ Postman Cloud sync returned an error:', errData);
+          process.exitCode = 1;
         }
       } catch (cloudErr) {
         console.warn('⚠️ Could not connect to Postman Cloud API:', cloudErr);
+        process.exitCode = 1;
       }
     } else {
       console.log('💡 Tip: Set POSTMAN_API_KEY and POSTMAN_COLLECTION_UID in your .env to enable direct cloud sync.');

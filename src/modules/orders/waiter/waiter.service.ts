@@ -102,7 +102,7 @@ export class WaiterService {
 
     // Process browsing tables (active cart sessions with no order yet)
     for (const cart of activeCarts) {
-      if (!cart.tableNumber || tableMap.has(cart.tableNumber)) continue;
+      if (!cart.tableNumber || tableMap.get(cart.tableNumber)?.orderId) continue;
 
       tableMap.set(cart.tableNumber, {
         tableNumber: cart.tableNumber,

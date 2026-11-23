@@ -39,12 +39,7 @@ export const config = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
 
-  corsOrigins: [
-    process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:4000',
-    process.env.NEXT_PUBLIC_WAITER_URL || 'http://localhost:4001',
-    process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:4002',
-    "http://localhost:8080",
-  ],
+  corsOrigin: process.env.CORS_ORIGIN,
 
   logLevel: process.env.LOG_LEVEL || 'info',
 };

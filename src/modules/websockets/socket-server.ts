@@ -15,8 +15,8 @@ export const initWebSockets = (server: http.Server): Server => {
 
   io = new Server(server, {
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST'],
+      origin: config.corsOrigin,
+      methods: ["GET", "POST"],
     },
     pingTimeout: 60000,
     pingInterval: 25000,
