@@ -60,6 +60,7 @@ jobs:
           APP_JWT_REFRESH_EXPIRES_IN: ${{ vars.JWT_REFRESH_EXPIRES_IN || '30d' }}
           APP_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           APP_STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          APP_CORS_ORIGIN: ${{ vars.CORS_ORIGIN || 'http://localhost:4000' }}
           APP_LOG_LEVEL: ${{ vars.LOG_LEVEL || (github.ref == 'refs/heads/main' && 'info' || 'debug') }}
 
         with:
@@ -69,7 +70,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || '22' }}
           timeout: 30s
           command_timeout: 15m
-          envs: APP_NODE_ENV,APP_PORT,APP_SERVICE_NAME,APP_MONGO_URI,APP_MONGO_MAX_POOL_SIZE,APP_REDIS_HOST,APP_REDIS_PORT,APP_JWT_SECRET,APP_JWT_EXPIRES_IN,APP_JWT_REFRESH_SECRET,APP_JWT_REFRESH_EXPIRES_IN,APP_STRIPE_SECRET_KEY,APP_STRIPE_WEBHOOK_SECRET,APP_LOG_LEVEL
+          envs: APP_NODE_ENV,APP_PORT,APP_SERVICE_NAME,APP_MONGO_URI,APP_MONGO_MAX_POOL_SIZE,APP_REDIS_HOST,APP_REDIS_PORT,APP_JWT_SECRET,APP_JWT_EXPIRES_IN,APP_JWT_REFRESH_SECRET,APP_JWT_REFRESH_EXPIRES_IN,APP_STRIPE_SECRET_KEY,APP_STRIPE_WEBHOOK_SECRET,APP_CORS_ORIGIN,APP_LOG_LEVEL
 
           script: |
             set -Eeuo pipefail
@@ -139,6 +140,7 @@ jobs:
               JWT_REFRESH_EXPIRES_IN: process.env.APP_JWT_REFRESH_EXPIRES_IN,
               STRIPE_SECRET_KEY: process.env.APP_STRIPE_SECRET_KEY,
               STRIPE_WEBHOOK_SECRET: process.env.APP_STRIPE_WEBHOOK_SECRET,
+              CORS_ORIGIN: process.env.APP_CORS_ORIGIN,
               LOG_LEVEL: process.env.APP_LOG_LEVEL
             };
 
