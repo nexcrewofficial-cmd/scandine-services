@@ -27,7 +27,7 @@ const __dirname = path.dirname(__filename);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: config.corsOrigins,
     credentials: true,
   })
 );

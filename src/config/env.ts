@@ -39,7 +39,10 @@ export const config = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
 
-  corsOrigin: process.env.CORS_ORIGIN,
+  corsOrigins: (process.env.CORS_ORIGIN ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   logLevel: process.env.LOG_LEVEL || 'info',
 };
